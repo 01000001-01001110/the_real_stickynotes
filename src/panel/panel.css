@@ -2,6 +2,15 @@
  * Panel Styles - Modern StickyNotes Design
  */
 
+:root {
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+}
+
 body {
   overflow: hidden;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
