@@ -202,6 +202,38 @@ function getPlatformConfig() {
 }
 
 // ============================================================================
+// ONNX VALIDATION
+// ============================================================================
+
+/**
+ * Validate that a file is a valid ONNX model by checking its header.
+ * ONNX files use protobuf format - valid files typically start with
+ * field tags 0x08 (varint field 1) or 0x0a (length-delimited field 1).
+ * @param {string} filePath - Path to the ONNX file
+ * @returns {Promise<boolean>} True if file has valid ONNX header
+ */
+async function isValidOnnxFile(filePath) {
+  try {
+    const fd = await fs.promises.open(filePath, 'r');
+    try {
+      const buffer = Buffer.alloc(16);
+      await fd.read(buffer, 0, 16, 0);
+
+      // ONNX uses protobuf format. Valid ONNX model files typically start with:
+      // - 0x08: varint field (field number 1, wire type 0)
+      // - 0x0a: length-delimited field (field number 1, wire type 2)
+      // These are the most common protobuf field tags for ONNX models
+      const firstByte = buffer[0];
+      return firstByte === 0x08 || firstByte === 0x0a;
+    } finally {
+      await fd.close();
+    }
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
 // STATUS CHECKING
 // ============================================================================
 
@@ -236,11 +268,15 @@ async function getVADStatus() {
     const stats = await fs.promises.stat(vadPath);
     const minSize = 1000000; // 1MB minimum for valid VAD model
 
+    // Check both size AND header validity for proper verification
+    const sizeValid = stats.size > minSize;
+    const headerValid = await isValidOnnxFile(vadPath);
+
     return {
       installed: true,
       path: vadPath,
       size: stats.size,
-      verified: stats.size > minSize,
+      verified: sizeValid && headerValid,
     };
   } catch {
     return {
@@ -283,7 +319,13 @@ async function getModelStatus(modelSize) {
       const filePath = path.join(modelPath, filename);
       try {
         const stats = await fs.promises.stat(filePath);
-        result.files[key] = stats.size > 0;
+        // For ONNX files, also validate the header
+        if (filename.endsWith('.onnx')) {
+          const headerValid = await isValidOnnxFile(filePath);
+          result.files[key] = stats.size > 0 && headerValid;
+        } else {
+          result.files[key] = stats.size > 0;
+        }
         if (key === 'encoder') {
           result.size = stats.size;
         }
@@ -333,9 +375,17 @@ async function verifyModel(modelSize) {
         continue;
       }
 
-      // For ONNX files, verify minimum expected size
-      if (filename.endsWith('.onnx') && stats.size < 1000) {
-        corrupted.push(key);
+      // For ONNX files, verify minimum expected size AND header validity
+      if (filename.endsWith('.onnx')) {
+        if (stats.size < 1000) {
+          corrupted.push(key);
+          continue;
+        }
+        // Validate ONNX header to detect corrupted/truncated files
+        const headerValid = await isValidOnnxFile(filePath);
+        if (!headerValid) {
+          corrupted.push(key);
+        }
       }
     } catch (error) {
       if (error.code === 'ENOENT') {
@@ -566,11 +616,18 @@ async function downloadVAD(onProgress = () => {}) {
 
   await downloadFile(SHERPA_ONNX_MODELS.vad.url, vadPath, onProgress);
 
-  // Verify download
+  // Verify download - check both size AND header validity
   const stats = await fs.promises.stat(vadPath);
   if (stats.size < 1000000) {
     await fs.promises.unlink(vadPath);
     throw new VerificationError(['vad'], []);
+  }
+
+  // Validate ONNX header
+  const headerValid = await isValidOnnxFile(vadPath);
+  if (!headerValid) {
+    await fs.promises.unlink(vadPath);
+    throw new VerificationError([], ['vad']);
   }
 
   return vadPath;
@@ -725,6 +782,9 @@ module.exports = {
   getVADStatus,
   getModelStatus,
   verifyModel,
+
+  // ONNX validation
+  isValidOnnxFile,
 
   // Disk operations
   checkDiskSpace,

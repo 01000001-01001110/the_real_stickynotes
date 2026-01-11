@@ -11,6 +11,37 @@ const https = require('https');
 const { getModelsPath, ensureDir } = require('../../shared/utils/paths');
 const { WHISPER_MODELS_LEGACY: WHISPER_MODELS } = require('../../shared/constants/whisper');
 
+/** Maximum number of HTTP redirects to follow */
+const MAX_REDIRECTS = 5;
+
+/**
+ * Safely clean up a temporary file
+ * @param {string} filePath - Path to file to remove
+ */
+function safeUnlink(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (err) {
+    // Ignore cleanup errors - file may already be removed or locked
+    console.warn(`Failed to clean up temp file ${filePath}:`, err.message);
+  }
+}
+
+/**
+ * Drain a response stream before cleanup to prevent memory leaks
+ * @param {http.IncomingMessage} response - Response to drain
+ * @returns {Promise<void>}
+ */
+function drainResponse(response) {
+  return new Promise((resolve) => {
+    response.resume(); // Switch to flowing mode to drain
+    response.on('end', resolve);
+    response.on('error', resolve); // Resolve even on error to allow cleanup
+  });
+}
+
 /**
  * Get the path to a specific model file
  * @param {string} modelSize - Model size (tiny, base, small)
@@ -84,20 +115,26 @@ async function download(modelSize, onProgress = () => {}) {
           'User-Agent': 'StickyNotes/2.0',
         },
       },
-      (response) => {
-        // Handle redirects
+      async (response) => {
+        // Handle redirects with counter (starting at 1 since this is the first redirect)
         if (response.statusCode === 301 || response.statusCode === 302) {
+          // Drain response before cleanup to prevent memory leaks
+          await drainResponse(response);
           file.close();
-          fs.unlinkSync(tempPath);
+          safeUnlink(tempPath);
 
           const redirectUrl = response.headers.location;
-          downloadFromUrl(redirectUrl, tempPath, destPath, onProgress).then(resolve).catch(reject);
+          // Pass redirect count starting at 1
+          downloadFromUrl(redirectUrl, tempPath, destPath, onProgress, 1, MAX_REDIRECTS)
+            .then(resolve)
+            .catch(reject);
           return;
         }
 
         if (response.statusCode !== 200) {
+          await drainResponse(response);
           file.close();
-          fs.unlinkSync(tempPath);
+          safeUnlink(tempPath);
           reject(new Error(`Failed to download: HTTP ${response.statusCode}`));
           return;
         }
@@ -118,9 +155,14 @@ async function download(modelSize, onProgress = () => {}) {
         file.on('finish', () => {
           file.close(() => {
             // Rename temp file to final destination
-            fs.renameSync(tempPath, destPath);
-            onProgress(100);
-            resolve(destPath);
+            try {
+              fs.renameSync(tempPath, destPath);
+              onProgress(100);
+              resolve(destPath);
+            } catch (err) {
+              safeUnlink(tempPath);
+              reject(new Error(`Failed to finalize download: ${err.message}`));
+            }
           });
         });
       }
@@ -128,17 +170,13 @@ async function download(modelSize, onProgress = () => {}) {
 
     request.on('error', (err) => {
       file.close();
-      if (fs.existsSync(tempPath)) {
-        fs.unlinkSync(tempPath);
-      }
+      safeUnlink(tempPath);
       reject(err);
     });
 
     file.on('error', (err) => {
       file.close();
-      if (fs.existsSync(tempPath)) {
-        fs.unlinkSync(tempPath);
-      }
+      safeUnlink(tempPath);
       reject(err);
     });
   });
@@ -146,9 +184,22 @@ async function download(modelSize, onProgress = () => {}) {
 
 /**
  * Helper to download from a specific URL (for handling redirects)
+ * @param {string} url - URL to download from
+ * @param {string} tempPath - Temporary file path
+ * @param {string} destPath - Final destination path
+ * @param {function} onProgress - Progress callback
+ * @param {number} redirectCount - Current redirect count
+ * @param {number} maxRedirects - Maximum allowed redirects
+ * @returns {Promise<string>} Path to downloaded file
  */
-function downloadFromUrl(url, tempPath, destPath, onProgress) {
+function downloadFromUrl(url, tempPath, destPath, onProgress, redirectCount = 0, maxRedirects = MAX_REDIRECTS) {
   return new Promise((resolve, reject) => {
+    // Check redirect limit before making request
+    if (redirectCount > maxRedirects) {
+      reject(new Error(`Too many redirects (max ${maxRedirects})`));
+      return;
+    }
+
     const file = fs.createWriteStream(tempPath);
     let downloadedBytes = 0;
     let totalBytes = 0;
@@ -160,10 +211,25 @@ function downloadFromUrl(url, tempPath, destPath, onProgress) {
           'User-Agent': 'StickyNotes/2.0',
         },
       },
-      (response) => {
-        if (response.statusCode !== 200) {
+      async (response) => {
+        // Handle nested redirects with counter
+        if (response.statusCode === 301 || response.statusCode === 302) {
+          await drainResponse(response);
           file.close();
-          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+          safeUnlink(tempPath);
+
+          const redirectUrl = response.headers.location;
+          // Increment redirect counter
+          downloadFromUrl(redirectUrl, tempPath, destPath, onProgress, redirectCount + 1, maxRedirects)
+            .then(resolve)
+            .catch(reject);
+          return;
+        }
+
+        if (response.statusCode !== 200) {
+          await drainResponse(response);
+          file.close();
+          safeUnlink(tempPath);
           reject(new Error(`Failed to download: HTTP ${response.statusCode}`));
           return;
         }
@@ -184,9 +250,14 @@ function downloadFromUrl(url, tempPath, destPath, onProgress) {
 
         file.on('finish', () => {
           file.close(() => {
-            fs.renameSync(tempPath, destPath);
-            onProgress(100);
-            resolve(destPath);
+            try {
+              fs.renameSync(tempPath, destPath);
+              onProgress(100);
+              resolve(destPath);
+            } catch (err) {
+              safeUnlink(tempPath);
+              reject(new Error(`Failed to finalize download: ${err.message}`));
+            }
           });
         });
       }
@@ -194,7 +265,13 @@ function downloadFromUrl(url, tempPath, destPath, onProgress) {
 
     request.on('error', (err) => {
       file.close();
-      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      safeUnlink(tempPath);
+      reject(err);
+    });
+
+    file.on('error', (err) => {
+      file.close();
+      safeUnlink(tempPath);
       reject(err);
     });
   });

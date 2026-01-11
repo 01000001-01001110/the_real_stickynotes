@@ -9,6 +9,13 @@ const sherpaModelManager = require('../whisper/sherpa-model-manager');
 const { getSetting } = require('../../shared/database/settings');
 
 /**
+ * Track active model installations to prevent concurrent installs of the same model.
+ * Uses model name as key to allow different models to install concurrently if needed.
+ * @type {Set<string>}
+ */
+const activeInstallations = new Set();
+
+/**
  * Format bytes to human readable string
  * @param {number} bytes
  * @returns {string}
@@ -36,6 +43,18 @@ function register(_wm) {
    */
   ipcMain.handle('whisper:installModel', async (event, modelSize) => {
     const sender = event.sender;
+
+    // Check for concurrent installation of the same model
+    if (activeInstallations.has(modelSize)) {
+      return {
+        success: false,
+        error: 'INSTALL_IN_PROGRESS',
+        message: `Installation of ${modelSize} is already in progress. Please wait for it to complete.`,
+      };
+    }
+
+    // Mark installation as active
+    activeInstallations.add(modelSize);
 
     try {
       // Check disk space
@@ -126,6 +145,9 @@ function register(_wm) {
         error: error.code || 'INSTALL_FAILED',
         message: error.message,
       };
+    } finally {
+      // Always clean up the installation flag
+      activeInstallations.delete(modelSize);
     }
   });
 
@@ -217,6 +239,18 @@ function register(_wm) {
   ipcMain.handle('whisper:downloadModel', async (event, size) => {
     const sender = event.sender;
 
+    // Check for concurrent installation of the same model
+    if (activeInstallations.has(size)) {
+      return {
+        success: false,
+        error: 'INSTALL_IN_PROGRESS',
+        message: `Installation of ${size} is already in progress. Please wait for it to complete.`,
+      };
+    }
+
+    // Mark installation as active
+    activeInstallations.add(size);
+
     try {
       // Use new installModel handler internally
       const vadStatus = await sherpaModelManager.getVADStatus();
@@ -247,6 +281,9 @@ function register(_wm) {
       console.error('Failed to download model:', error);
       sender.send('whisper:error', error.message);
       return { success: false, error: error.message };
+    } finally {
+      // Always clean up the installation flag
+      activeInstallations.delete(size);
     }
   });
 
