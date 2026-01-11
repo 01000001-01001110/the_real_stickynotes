@@ -30,7 +30,7 @@
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
   },
-  "author": "StickyNotes Team <stickynotes@example.com>",
+  "author": "StickyNotes Team <alan.newingham@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "adm-zip": "^0.5.16",
