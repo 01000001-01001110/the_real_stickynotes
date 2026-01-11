@@ -1,0 +1,156 @@
+/**
+ * Note Color Themes
+ * Each color has light mode and dark mode variants
+ */
+
+/* Yellow - Sunny */
+.note-theme-yellow {
+  --note-bg: #FFF9C4;
+  --note-title-bg: #FFEE58;
+  --note-title-hover: #FDD835;
+  --note-text: #3E2723;
+  --note-border: #FFD54F;
+  --note-text-secondary: #5D4037;
+}
+
+[data-theme="dark"] .note-theme-yellow {
+  --note-bg: #3D3A2A;
+  --note-title-bg: #5C5626;
+  --note-title-hover: #6B6430;
+  --note-text: #F5F0D0;
+  --note-border: #4A4520;
+  --note-text-secondary: #C9C4A0;
+}
+
+/* Pink - Rose */
+.note-theme-pink {
+  --note-bg: #FCE4EC;
+  --note-title-bg: #F48FB1;
+  --note-title-hover: #EC407A;
+  --note-text: #880E4F;
+  --note-border: #F8BBD0;
+  --note-text-secondary: #AD1457;
+}
+
+[data-theme="dark"] .note-theme-pink {
+  --note-bg: #3D2A33;
+  --note-title-bg: #6B3A4C;
+  --note-title-hover: #7D4459;
+  --note-text: #F5D0DE;
+  --note-border: #4A2838;
+  --note-text-secondary: #D4A0B5;
+}
+
+/* Blue - Sky */
+.note-theme-blue {
+  --note-bg: #E3F2FD;
+  --note-title-bg: #64B5F6;
+  --note-title-hover: #2196F3;
+  --note-text: #0D47A1;
+  --note-border: #90CAF9;
+  --note-text-secondary: #1565C0;
+}
+
+[data-theme="dark"] .note-theme-blue {
+  --note-bg: #1E2D3D;
+  --note-title-bg: #2A4A6B;
+  --note-title-hover: #355A7D;
+  --note-text: #C5DCF5;
+  --note-border: #2A3D50;
+  --note-text-secondary: #8BB5D8;
+}
+
+/* Green - Mint */
+.note-theme-green {
+  --note-bg: #E8F5E9;
+  --note-title-bg: #81C784;
+  --note-title-hover: #4CAF50;
+  --note-text: #1B5E20;
+  --note-border: #A5D6A7;
+  --note-text-secondary: #2E7D32;
+}
+
+[data-theme="dark"] .note-theme-green {
+  --note-bg: #1E3D24;
+  --note-title-bg: #2E5A35;
+  --note-title-hover: #3A6B42;
+  --note-text: #C5E8C9;
+  --note-border: #2A4A30;
+  --note-text-secondary: #8BC490;
+}
+
+/* Purple - Lavender */
+.note-theme-purple {
+  --note-bg: #F3E5F5;
+  --note-title-bg: #BA68C8;
+  --note-title-hover: #9C27B0;
+  --note-text: #4A148C;
+  --note-border: #CE93D8;
+  --note-text-secondary: #6A1B9A;
+}
+
+[data-theme="dark"] .note-theme-purple {
+  --note-bg: #2D2339;
+  --note-title-bg: #5A3D6B;
+  --note-title-hover: #6B4A7D;
+  --note-text: #E0C8E8;
+  --note-border: #3D2D4A;
+  --note-text-secondary: #B898C8;
+}
+
+/* Orange - Sunset */
+.note-theme-orange {
+  --note-bg: #FFF3E0;
+  --note-title-bg: #FFB74D;
+  --note-title-hover: #FF9800;
+  --note-text: #E65100;
+  --note-border: #FFCC80;
+  --note-text-secondary: #EF6C00;
+}
+
+[data-theme="dark"] .note-theme-orange {
+  --note-bg: #3D2E1E;
+  --note-title-bg: #6B4D26;
+  --note-title-hover: #7D5A30;
+  --note-text: #F5DFC5;
+  --note-border: #4A3920;
+  --note-text-secondary: #D4A870;
+}
+
+/* Gray - Slate */
+.note-theme-gray {
+  --note-bg: #ECEFF1;
+  --note-title-bg: #90A4AE;
+  --note-title-hover: #607D8B;
+  --note-text: #263238;
+  --note-border: #B0BEC5;
+  --note-text-secondary: #37474F;
+}
+
+[data-theme="dark"] .note-theme-gray {
+  --note-bg: #2A2E30;
+  --note-title-bg: #3D4850;
+  --note-title-hover: #4A5860;
+  --note-text: #CFD8DC;
+  --note-border: #3A4248;
+  --note-text-secondary: #90A4AE;
+}
+
+/* Charcoal - Night */
+.note-theme-charcoal {
+  --note-bg: #37474F;
+  --note-title-bg: #263238;
+  --note-title-hover: #1C313A;
+  --note-text: #ECEFF1;
+  --note-border: #455A64;
+  --note-text-secondary: #B0BEC5;
+}
+
+[data-theme="dark"] .note-theme-charcoal {
+  --note-bg: #1A1E21;
+  --note-title-bg: #12171A;
+  --note-title-hover: #0D1114;
+  --note-text: #CFD8DC;
+  --note-border: #2A3238;
+  --note-text-secondary: #90A4AE;
+}

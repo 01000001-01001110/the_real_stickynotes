@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
+  <title>Note</title>
+  <link rel="stylesheet" href="../styles/variables.css">
+  <link rel="stylesheet" href="../styles/themes.css">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/dark.css">
+  <link rel="stylesheet" href="../styles/animations.css">
+  <link rel="stylesheet" href="note.css">
+</head>
+<body class="note-theme-yellow">
+  <div class="note-window">
+    <!-- Title Bar (draggable) -->
+    <div class="note-titlebar" id="titlebar">
+      <div class="titlebar-drag-region"></div>
+      
+      <div class="titlebar-left">
+        <button class="titlebar-btn color-picker-btn" id="colorPickerBtn" title="Change color">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="8"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="titlebar-center">
+        <input type="text" class="note-title-input" id="titleInput" placeholder="Note title..." />
+      </div>
+      
+      <div class="titlebar-right">
+        <button class="titlebar-btn" id="pinBtn" title="Pin on top">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v10M12 22v-6M5 12h14"/>
+          </svg>
+        </button>
+        <button class="titlebar-btn" id="menuBtn" title="More options">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="6" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="12" cy="18" r="2"/>
+          </svg>
+        </button>
+        <button class="titlebar-btn close-btn" id="closeBtn" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Color Picker Dropdown -->
+    <div class="color-picker-dropdown" id="colorPicker" hidden>
+      <button class="color-swatch" data-color="yellow" style="background: #FFEE58;" title="Yellow"></button>
+      <button class="color-swatch" data-color="pink" style="background: #F48FB1;" title="Pink"></button>
+      <button class="color-swatch" data-color="blue" style="background: #64B5F6;" title="Blue"></button>
+      <button class="color-swatch" data-color="green" style="background: #81C784;" title="Green"></button>
+      <button class="color-swatch" data-color="purple" style="background: #BA68C8;" title="Purple"></button>
+      <button class="color-swatch" data-color="orange" style="background: #FFB74D;" title="Orange"></button>
+      <button class="color-swatch" data-color="gray" style="background: #90A4AE;" title="Gray"></button>
+      <button class="color-swatch" data-color="charcoal" style="background: #263238;" title="Charcoal"></button>
+    </div>
+    
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu" hidden>
+      <button class="menu-item" data-action="duplicate">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+        </svg>
+        Duplicate
+      </button>
+      <button class="menu-item" data-action="tags">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+          <circle cx="7" cy="7" r="1"/>
+        </svg>
+        Tags...
+      </button>
+      <button class="menu-item" data-action="reminder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        Set reminder...
+      </button>
+      <button class="menu-item" data-action="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Version history
+      </button>
+      <div class="menu-separator"></div>
+      <button class="menu-item" data-action="archive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="21 8 21 21 3 21 3 8"/>
+          <rect x="1" y="3" width="22" height="5"/>
+          <line x1="10" y1="12" x2="14" y2="12"/>
+        </svg>
+        Archive
+      </button>
+      <button class="menu-item danger" data-action="delete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+        </svg>
+        Delete
+      </button>
+    </div>
+    
+    <!-- Note Content -->
+    <div class="note-content">
+      <div class="editor-container">
+        <!-- Formatting Toolbar -->
+        <div class="editor-toolbar" id="editorToolbar">
+          <button class="toolbar-btn" data-format="bold" title="Bold (Ctrl+B)">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"/>
+              <path d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/>
+            </svg>
+          </button>
+          <button class="toolbar-btn" data-format="italic" title="Italic (Ctrl+I)">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <line x1="19" y1="4" x2="10" y2="4" stroke="currentColor" stroke-width="2"/>
+              <line x1="14" y1="20" x2="5" y2="20" stroke="currentColor" stroke-width="2"/>
+              <line x1="15" y1="4" x2="9" y2="20" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="toolbar-btn" data-format="underline" title="Underline (Ctrl+U)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 4v6a6 6 0 006 6 6 6 0 006-6V4"/>
+              <line x1="4" y1="20" x2="20" y2="20"/>
+            </svg>
+          </button>
+          <button class="toolbar-btn" data-format="strikethrough" title="Strikethrough">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 4H9a3 3 0 00-3 3v0a3 3 0 003 3h6"/>
+              <path d="M8 20h7a3 3 0 003-3v0a3 3 0 00-3-3H8"/>
+              <line x1="4" y1="12" x2="20" y2="12"/>
+            </svg>
+          </button>
+          <span class="toolbar-separator"></span>
+          <button class="toolbar-btn" data-format="bullet" title="Bullet list">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="4" cy="6" r="2"/>
+              <circle cx="4" cy="12" r="2"/>
+              <circle cx="4" cy="18" r="2"/>
+              <line x1="9" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/>
+              <line x1="9" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="toolbar-btn" data-format="checkbox" title="Checkbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </button>
+          <span class="toolbar-separator"></span>
+          <button class="toolbar-btn" data-format="code" title="Inline code">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"/>
+              <polyline points="8 6 2 12 8 18"/>
+            </svg>
+          </button>
+          <button class="toolbar-btn" data-format="codeblock" title="Code block">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <polyline points="10 8 6 12 10 16"/>
+              <polyline points="14 8 18 12 14 16"/>
+            </svg>
+          </button>
+          <span class="toolbar-separator"></span>
+          <button class="toolbar-btn" id="transcribeBtn" title="Transcribe audio (speech-to-text)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Content Editor -->
+        <div 
+          class="note-editor" 
+          id="noteEditor"
+          contenteditable="true"
+          spellcheck="true"
+          data-placeholder="Start typing..."
+        ></div>
+      </div>
+    </div>
+    
+    <!-- Status Bar -->
+    <div class="note-statusbar" id="statusbar">
+      <span class="status-text" id="statusText">Saved</span>
+      <span class="status-info" id="wordCount"></span>
+    </div>
+    
+    <!-- Transcribe Menu (outside content area for proper positioning) -->
+    <div class="transcribe-menu" id="transcribeMenu" hidden>
+      <div class="transcribe-menu-header">
+        <span>Audio Source</span>
+      </div>
+      <button class="transcribe-option" data-source="microphone">
+        <span>Microphone</span>
+        <small>Your voice only</small>
+      </button>
+      <button class="transcribe-option" data-source="system">
+        <span>System Audio</span>
+        <small>Speakers/apps</small>
+      </button>
+      <button class="transcribe-option" data-source="both">
+        <span>All Audio</span>
+        <small>Mic + System</small>
+      </button>
+      <div class="transcribe-menu-footer" id="transcribeStatus">
+        <span class="status-indicator"></span>
+        <span class="status-text">Model not loaded</span>
+      </div>
+    </div>
+    
+    <!-- Resize Handles -->
+    <div class="resize-handle resize-n" data-resize="n"></div>
+    <div class="resize-handle resize-e" data-resize="e"></div>
+    <div class="resize-handle resize-s" data-resize="s"></div>
+    <div class="resize-handle resize-w" data-resize="w"></div>
+    <div class="resize-handle resize-ne" data-resize="ne"></div>
+    <div class="resize-handle resize-se" data-resize="se"></div>
+    <div class="resize-handle resize-sw" data-resize="sw"></div>
+    <div class="resize-handle resize-nw" data-resize="nw"></div>
+  </div>
+  
+  <!-- Locked Note Overlay -->
+  <div class="locked-overlay" id="lockedOverlay" hidden>
+    <div class="locked-content">
+      <svg class="locked-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+      <p>This note is password protected</p>
+      <input type="password" class="password-input" id="passwordInput" placeholder="Enter password" />
+      <button class="btn btn-primary" id="unlockBtn">Unlock</button>
+    </div>
+  </div>
+  
+  <!-- Tags Dialog -->
+  <div class="dialog-overlay" id="tagsDialog" hidden>
+    <div class="dialog">
+      <div class="dialog-header">
+        <h3>Tags</h3>
+        <button class="dialog-close" data-close>&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="tag-input-wrapper">
+          <input type="text" class="tag-input" id="tagInput" placeholder="Add tag..." />
+          <button class="btn btn-sm btn-primary" id="addTagBtn">Add</button>
+        </div>
+        <div class="tags-list" id="tagsList"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Reminder Dialog -->
+  <div class="dialog-overlay" id="reminderDialog" hidden>
+    <div class="dialog">
+      <div class="dialog-header">
+        <h3>Set Reminder</h3>
+        <button class="dialog-close" data-close>&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="reminder-current" id="reminderCurrent" hidden>
+          <p>Current reminder: <span id="currentReminderTime"></span></p>
+          <button class="btn btn-sm btn-danger" id="clearReminderBtn">Clear Reminder</button>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" class="form-input" id="reminderDate" />
+        </div>
+        <div class="form-group">
+          <label>Time</label>
+          <input type="time" class="form-input" id="reminderTime" />
+        </div>
+        <div class="quick-reminders">
+          <button class="btn btn-sm btn-ghost" data-quick="1h">In 1 hour</button>
+          <button class="btn btn-sm btn-ghost" data-quick="3h">In 3 hours</button>
+          <button class="btn btn-sm btn-ghost" data-quick="tomorrow">Tomorrow 9am</button>
+          <button class="btn btn-sm btn-ghost" data-quick="week">Next week</button>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn btn-ghost" data-close>Cancel</button>
+        <button class="btn btn-primary" id="setReminderBtn">Set Reminder</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- History Dialog -->
+  <div class="dialog-overlay" id="historyDialog" hidden>
+    <div class="dialog dialog-wide">
+      <div class="dialog-header">
+        <h3>Version History</h3>
+        <button class="dialog-close" data-close>&times;</button>
+      </div>
+      <div class="dialog-body">
+        <div class="history-list" id="historyList">
+          <p class="empty-history">No version history available</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Image Viewer is now a separate window - see src/imageviewer/ -->
+  
+  <script src="transcription.js"></script>
+  <script src="note.js"></script>
+</body>
+</html>

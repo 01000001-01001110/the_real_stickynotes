@@ -1,0 +1,33 @@
+appId: com.stickynotes.app
+productName: StickyNotes
+copyright: Copyright © 2024 StickyNotes Team
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - electron/**/*
+  - src/**/*
+  - shared/**/*
+  - cli/**/*
+  - assets/**/*
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: assets/icons/icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: StickyNotes
+
+publish:
+  provider: github
+  releaseType: release

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="4" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    <!-- Gradient for the folded corner -->
+    <linearGradient id="foldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E6C200"/>
+      <stop offset="100%" style="stop-color:#B8960A"/>
+    </linearGradient>
+    <!-- Main note gradient for depth -->
+    <linearGradient id="noteGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFE066"/>
+      <stop offset="100%" style="stop-color:#FFD633"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main sticky note body -->
+  <path d="M 56 48
+           L 456 48
+           Q 472 48 472 64
+           L 472 368
+           L 376 464
+           L 56 464
+           Q 40 464 40 448
+           L 40 64
+           Q 40 48 56 48 Z"
+        fill="url(#noteGradient)"
+        filter="url(#shadow)"/>
+
+  <!-- Folded corner -->
+  <path d="M 472 368
+           L 376 368
+           Q 360 368 360 384
+           L 360 464
+           L 376 464
+           L 472 368 Z"
+        fill="url(#foldGradient)"/>
+
+  <!-- Subtle fold line -->
+  <path d="M 472 368 L 360 464"
+        stroke="#C4A000"
+        stroke-width="2"
+        fill="none"
+        opacity="0.5"/>
+
+  <!-- Text lines to suggest content -->
+  <line x1="88" y1="140" x2="360" y2="140" stroke="#C4A000" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+  <line x1="88" y1="200" x2="320" y2="200" stroke="#C4A000" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+  <line x1="88" y1="260" x2="280" y2="260" stroke="#C4A000" stroke-width="8" stroke-linecap="round" opacity="0.4"/>
+  <line x1="88" y1="320" x2="240" y2="320" stroke="#C4A000" stroke-width="8" stroke-linecap="round" opacity="0.3"/>
+</svg>
