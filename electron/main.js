@@ -19,6 +19,7 @@ const { WindowManager } = require('./windows/manager');
 const { setupIpcHandlers } = require('./ipc');
 const { setupReminders, stopReminders } = require('./reminders');
 const { checkForUpdates } = require('./updater');
+const { runFirstLaunchSetup } = require('./first-launch');
 
 // CLI support
 const { isCliMode, parseArgs } = require('./cli/parser');
@@ -242,6 +243,15 @@ async function createApp() {
 
     // Restore previously open notes
     windowManager.restoreOpenNotes();
+
+    // First launch setup (transcription, etc.)
+    // Ensure panel is created for first-launch dialog
+    const panelWindow = windowManager.panelWindow || windowManager.showPanel();
+    if (panelWindow && !panelWindow.isDestroyed()) {
+      // Small delay to ensure window is ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await runFirstLaunchSetup(panelWindow);
+    }
 
     // Check for updates
     checkForUpdates();
