@@ -319,6 +319,20 @@ const settingsSchema = {
     max: 8,
     description: 'CPU threads for transcription',
   },
+
+  // Setup/First-Launch Settings
+  'setup.transcriptionOffered': {
+    type: 'boolean',
+    default: false,
+    description: 'Whether transcription setup has been offered to user',
+  },
+
+  // Hints (one-time user guidance)
+  'hints.noteCloseHintSeen': {
+    type: 'boolean',
+    default: false,
+    description: 'Whether user has seen the note close hint',
+  },
 };
 
 function getSettingDefault(key) {
