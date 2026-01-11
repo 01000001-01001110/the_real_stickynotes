@@ -52,22 +52,30 @@ async function showTranscriptionSetupDialog(parentWindow) {
  */
 function createProgressWindow(parentWindow) {
   const progressWindow = new BrowserWindow({
-    width: 400,
-    height: 150,
-    parent: parentWindow,
-    modal: true,
+    width: 420,
+    height: 180,
+    parent: null, // Independent window
+    modal: false,
     resizable: false,
-    minimizable: false,
+    minimizable: true,
     maximizable: false,
-    closable: false,
-    frame: false,
-    transparent: false,
+    closable: true,
+    frame: true,
+    title: 'Setting up transcription',
     backgroundColor: '#1e1e1e',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
+
+  // Center relative to parent
+  if (parentWindow && !parentWindow.isDestroyed()) {
+    const parentBounds = parentWindow.getBounds();
+    const x = Math.round(parentBounds.x + (parentBounds.width - 420) / 2);
+    const y = Math.round(parentBounds.y + (parentBounds.height - 180) / 2);
+    progressWindow.setPosition(x, y);
+  }
 
   const html = `
     <!DOCTYPE html>
@@ -101,15 +109,17 @@ function createProgressWindow(parentWindow) {
           transition: width 0.2s ease;
         }
         .percent { text-align: right; font-size: 12px; color: #888; margin-top: 8px; }
+        .hint { color: #666; font-size: 11px; margin-top: 12px; text-align: center; }
       </style>
     </head>
     <body>
       <h3>Setting up voice transcription...</h3>
-      <div class="status" id="status">Initializing...</div>
+      <div class="status" id="status">Checking disk space...</div>
       <div class="progress-bar">
         <div class="progress-fill" id="progress"></div>
       </div>
       <div class="percent" id="percent">0%</div>
+      <div class="hint">Close this window to cancel</div>
       <script>
         window.updateProgress = (percent, status) => {
           document.getElementById('progress').style.width = percent + '%';
@@ -132,17 +142,30 @@ function createProgressWindow(parentWindow) {
  */
 async function installTranscriptionModel(parentWindow) {
   const progressWindow = createProgressWindow(parentWindow);
+  let cancelled = false;
+
+  // Handle user closing the window (cancellation)
+  progressWindow.on('closed', () => {
+    cancelled = true;
+  });
 
   try {
     // Wait for window to load
     await new Promise((resolve) => progressWindow.webContents.once('did-finish-load', resolve));
     progressWindow.show();
 
-    // Check disk space first
+    // Check disk space first (with timeout)
     const modelConfig = sherpaModelManager.SHERPA_ONNX_MODELS.whisper[DEFAULT_MODEL];
     const requiredSpace = modelConfig.sizeBytes * 2.5; // Archive + extracted + buffer
 
-    const spaceCheck = await sherpaModelManager.checkDiskSpace(requiredSpace);
+    const spaceCheckPromise = sherpaModelManager.checkDiskSpace(requiredSpace);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Disk space check timed out')), 10000)
+    );
+
+    const spaceCheck = await Promise.race([spaceCheckPromise, timeoutPromise]);
+    if (cancelled) throw new Error('Installation cancelled by user');
+
     if (!spaceCheck.sufficient) {
       throw new Error(
         `Insufficient disk space. Need ${Math.round(requiredSpace / 1024 / 1024)}MB.`
