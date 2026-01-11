@@ -89,26 +89,28 @@ function searchNotesSimple(query, options = {}) {
   const pattern = `%${sanitized}%`;
   
   let sql = `
-    SELECT * FROM notes
-    WHERE (title LIKE @pattern ESCAPE '\\' OR content_plain LIKE @pattern ESCAPE '\\')
+    SELECT DISTINCT n.* FROM notes n
+    LEFT JOIN note_tags nt ON n.id = nt.note_id
+    LEFT JOIN tags t ON nt.tag_id = t.id
+    WHERE (n.title LIKE @pattern ESCAPE '\\' OR n.content_plain LIKE @pattern ESCAPE '\\' OR t.name LIKE @pattern ESCAPE '\\')
   `;
   
   const params = { pattern };
   
   if (!options.includeDeleted) {
-    sql += ' AND is_deleted = 0';
+    sql += ' AND n.is_deleted = 0';
   }
   
   if (!options.includeArchived) {
-    sql += ' AND is_archived = 0';
+    sql += ' AND n.is_archived = 0';
   }
   
   if (options.folder_id) {
-    sql += ' AND folder_id = @folder_id';
+    sql += ' AND n.folder_id = @folder_id';
     params.folder_id = options.folder_id;
   }
   
-  sql += ' ORDER BY updated_at DESC';
+  sql += ' ORDER BY n.updated_at DESC';
   
   // Validate limit
   const limit = validateLimit(options.limit, 500);
@@ -186,8 +188,8 @@ function getSearchSuggestions(partial, limit = 5) {
   // Get unique words from titles that match
   const results = db.prepare(`
     SELECT DISTINCT title FROM notes
-    WHERE title LIKE ? ESCAPE '\\' AND is_deleted = 0
-    ORDER BY updated_at DESC
+    WHERE title LIKE ? ESCAPE '\\' AND n.is_deleted = 0
+    ORDER BY n.updated_at DESC
     LIMIT ?
   `).all(`%${sanitized}%`, limit);
   

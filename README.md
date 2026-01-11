@@ -8,6 +8,9 @@ A feature-rich sticky notes desktop application built with Electron, featuring r
 
 ![StickyNotes Screenshot](assets/screenshots/screenshot-main.png)
 
+![CLI Integration](assets/screenshots/screenshot-second.png)
+*CLI commands seamlessly sync with the desktop app*
+
 ## Features
 
 - **Microsoft Sticky Notes-like UI** - Familiar floating note windows

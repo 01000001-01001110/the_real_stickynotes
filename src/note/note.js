@@ -47,6 +47,9 @@ const currentReminderTime = document.getElementById('currentReminderTime');
 const historyDialog = document.getElementById('historyDialog');
 const historyList = document.getElementById('historyList');
 
+const closeHintDialog = document.getElementById('closeHintDialog');
+const closeHintOkBtn = document.getElementById('closeHintOkBtn');
+
 // Transcription elements
 const transcribeBtn = document.getElementById('transcribeBtn');
 const transcribeMenu = document.getElementById('transcribeMenu');
@@ -420,6 +423,22 @@ function setupEventListeners() {
       clearInterval(historyInterval);
       historyInterval = null;
     }
+    
+    // Check if user has seen the close hint before
+    const hasSeenHint = await api.getSetting('hints.noteCloseHintSeen');
+    if (!hasSeenHint) {
+      // Show the hint dialog
+      closeHintDialog.hidden = false;
+    } else {
+      api.closeWindow();
+    }
+  });
+  
+  // Close hint dialog OK button
+  closeHintOkBtn?.addEventListener('click', async () => {
+    // Save that user has seen the hint
+    await api.setSetting('hints.noteCloseHintSeen', true);
+    closeHintDialog.hidden = true;
     api.closeWindow();
   });
 
