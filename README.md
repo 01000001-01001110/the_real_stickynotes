@@ -6,6 +6,8 @@ A feature-rich sticky notes desktop application built with Electron, featuring r
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 
+![StickyNotes Screenshot](assets/screenshots/screenshot-main.png)
+
 ## Features
 
 - **Microsoft Sticky Notes-like UI** - Familiar floating note windows
@@ -58,6 +60,51 @@ npm run build
 ```
 
 Installers are output to the `dist/` directory.
+
+### Installation Warnings
+
+The app is not code-signed, so you'll see security warnings during installation:
+
+**Windows**: "Windows protected your PC" (SmartScreen)
+- Click **"More info"** → **"Run anyway"**
+
+**macOS**: "App is damaged" or "unidentified developer"
+- Right-click the app → **"Open"** → **"Open"**
+- Or: System Preferences → Security & Privacy → **"Open Anyway"**
+
+**Linux**: No warnings (signing not required)
+
+This is normal for open-source software without paid code signing certificates ($200-400/year for Windows, $99/year for macOS).
+
+### Code Signing (Optional)
+
+To remove security warnings, you need signing certificates:
+
+**Windows** - Code Signing Certificate:
+- EV Certificate (~$400/year) - Immediate SmartScreen trust
+- Standard Certificate (~$200/year) - Builds reputation over time
+
+**macOS** - Apple Developer Program:
+- $99/year membership required
+- Notarization required for distribution
+
+Add credentials to `electron-builder.yml`:
+```yaml
+win:
+  certificateFile: ./certs/windows.pfx
+  certificatePassword: ${WIN_CSC_KEY_PASSWORD}
+
+mac:
+  notarize:
+    teamId: YOUR_APPLE_TEAM_ID
+```
+
+Set environment variables before building:
+```bash
+export WIN_CSC_KEY_PASSWORD="your-cert-password"
+export APPLE_ID="your@apple.id"
+export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+```
 
 ## Cloud Storage
 
