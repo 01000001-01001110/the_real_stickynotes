@@ -1,0 +1,82 @@
+{
+  "name": "stickynotes",
+  "version": "0.2.1",
+  "description": "The Real StickyNotes - a feature-rich sticky notes application with CLI support",
+  "main": "electron/main.js",
+  "bin": {
+    "stickynotes": "./cli/bin/stickynotes.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:cli": "pkg cli/bin/stickynotes.js --targets win-x64,macos-x64,linux-x64 --output dist/cli/stickynotes --compress GZip",
+    "build:cli:win": "pkg cli/bin/stickynotes.js --target win-x64 --output dist/cli/stickynotes.exe --compress GZip",
+    "lint": "eslint .",
+    "pretest": "npm run rebuild",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=test/unit",
+    "test:integration": "jest --testPathPattern=test/integration",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose",
+    "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit",
+    "setup": "node scripts/setup.mjs",
+    "setup:electron": "node scripts/setup.mjs --electron",
+    "rebuild": "npm rebuild better-sqlite3",
+    "rebuild:electron": "electron-rebuild",
+    "postinstall": "electron-builder install-app-deps",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "author": "Alan Newingham <48245017+01000001-01001110@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/01000001-01001110/the_real_stickynotes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/01000001-01001110/the_real_stickynotes/issues"
+  },
+  "homepage": "https://github.com/01000001-01001110/the_real_stickynotes#readme",
+  "dependencies": {
+    "ajv": "8.17.1",
+    "bcryptjs": "2.4.3",
+    "better-sqlite3": "9.6.0",
+    "chalk": "4.1.2",
+    "chokidar": "3.6.0",
+    "cli-table3": "0.6.3",
+    "electron-updater": "6.1.7",
+    "nanoid": "3.3.7",
+    "write-file-atomic": "5.0.1",
+    "yaml": "2.8.2"
+  },
+  "pkg": {
+    "scripts": [
+      "cli/**/*.js",
+      "electron/cli/**/*.js"
+    ],
+    "assets": [],
+    "targets": [
+      "node20-win-x64",
+      "node20-macos-x64",
+      "node20-linux-x64"
+    ]
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "@yao-pkg/pkg": "^6.12.0",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "semantic-release": "^25.0.2"
+  }
+}

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
+  <title>Image Viewer</title>
+  <link rel="stylesheet" href="../styles/variables.css">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/dark.css">
+  <link rel="stylesheet" href="imageviewer.css">
+</head>
+<body>
+  <!-- Custom Title Bar -->
+  <div class="titlebar">
+    <div class="titlebar-drag">
+      <span class="titlebar-title">Image Viewer</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn" id="minimizeBtn" title="Minimize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+      <button class="titlebar-btn" id="maximizeBtn" title="Maximize">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+        </svg>
+      </button>
+      <button class="titlebar-btn close-btn" id="closeBtn" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="6" y1="6" x2="18" y2="18"/>
+          <line x1="6" y1="18" x2="18" y2="6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="viewer-toolbar">
+    <div class="toolbar-group">
+      <button class="toolbar-btn" id="zoomOutBtn" title="Zoom Out (-)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+      <span class="zoom-display" id="zoomDisplay">100%</span>
+      <button class="toolbar-btn" id="zoomInBtn" title="Zoom In (+)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+          <line x1="11" y1="8" x2="11" y2="14"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+      <button class="toolbar-btn" id="zoomFitBtn" title="Fit to Window">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <div class="toolbar-group">
+      <button class="toolbar-btn" id="rotateLeftBtn" title="Rotate Left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2.5 2v6h6"/>
+          <path d="M2 12a10 10 0 0118.8-4.5"/>
+        </svg>
+      </button>
+      <button class="toolbar-btn" id="rotateRightBtn" title="Rotate Right">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6"/>
+          <path d="M22 12a10 10 0 01-18.8-4.5"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <div class="toolbar-group drawing-tools">
+      <button class="toolbar-btn" id="drawBtn" title="Draw Mode (D)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+          <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+          <path d="M2 2l7.586 7.586"/>
+          <circle cx="11" cy="11" r="2"/>
+        </svg>
+      </button>
+      <input type="color" id="drawColor" value="#ff0000" title="Drawing Color">
+      <select id="brushSize" title="Brush Size">
+        <option value="2">Thin</option>
+        <option value="4" selected>Medium</option>
+        <option value="8">Thick</option>
+        <option value="16">Extra Thick</option>
+      </select>
+      <button class="toolbar-btn" id="eraserBtn" title="Eraser (E)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L13.4 2.8c.8-.8 2-.8 2.8 0l6 6c.8.8.8 2 0 2.8L15 19"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <div class="toolbar-group">
+      <button class="toolbar-btn" id="undoBtn" title="Undo (Ctrl+Z)" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 7v6h6"/>
+          <path d="M3 13a9 9 0 0116.24-5.39"/>
+        </svg>
+        <span class="undo-count" id="undoCount"></span>
+      </button>
+      <button class="toolbar-btn" id="clearDrawingBtn" title="Clear Drawing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18"/>
+          <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>
+          <path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <div class="toolbar-group">
+      <button class="toolbar-btn" id="saveBtn" title="Save Image (Ctrl+S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <button class="toolbar-btn" id="resetBtn" title="Reset View">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 4v6h6"/>
+          <path d="M3 10a10 10 0 0118 0M23 20v-6h-6"/>
+          <path d="M21 14a10 10 0 01-18 0"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Image Canvas Container -->
+  <div class="viewer-container" id="viewerContainer">
+    <div class="canvas-wrapper" id="canvasWrapper">
+      <canvas id="imageCanvas"></canvas>
+      <canvas id="drawingCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="viewer-statusbar">
+    <span id="imageInfo">Loading...</span>
+    <span id="drawingStatus"></span>
+  </div>
+
+  <script src="imageviewer.js"></script>
+</body>
+</html>

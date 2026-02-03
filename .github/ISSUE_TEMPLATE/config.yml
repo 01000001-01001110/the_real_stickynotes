@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Ask Claude for Help
+    url: https://github.com/01000001-01001110/the_real_stickynotes/issues/new?labels=question,claude-fix&title=[Question]:+
+    about: Ask a question and let Claude help answer it
+  - name: Discussions
+    url: https://github.com/01000001-01001110/the_real_stickynotes/discussions
+    about: General questions and community discussions

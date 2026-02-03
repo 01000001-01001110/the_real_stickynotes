@@ -1,0 +1,23 @@
+# CODEOWNERS - Default reviewers for pull requests
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @01000001-01001110
+
+# Electron main process
+/electron/ @01000001-01001110
+
+# Renderer/UI
+/src/ @01000001-01001110
+
+# CLI
+/cli/ @01000001-01001110
+
+# Shared code
+/shared/ @01000001-01001110
+
+# Tests
+/test/ @01000001-01001110
+
+# CI/CD
+/.github/ @01000001-01001110

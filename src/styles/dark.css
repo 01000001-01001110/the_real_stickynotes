@@ -1,0 +1,449 @@
+/**
+ * Dark Theme Overrides
+ * Comprehensive dark mode styling for the entire app
+ */
+
+/* Base */
+[data-theme="dark"] body {
+  background: var(--app-bg-gradient);
+  color: var(--text-primary);
+}
+
+/* Form Elements */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Buttons */
+[data-theme="dark"] .btn-secondary {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-ghost {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-icon {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .btn-icon:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+
+/* Panel Header */
+[data-theme="dark"] .panel-header {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Search Bar */
+[data-theme="dark"] .search-bar {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .search-input {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .search-input:focus {
+  background-color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+/* Toolbar */
+[data-theme="dark"] .toolbar {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .toolbar select {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Sidebar */
+[data-theme="dark"] .sidebar {
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .sidebar-section-title {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .folder-item {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .folder-item:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .folder-item.active {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+[data-theme="dark"] .folder-count {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .folder-item.active .folder-count {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Tags */
+[data-theme="dark"] .tag-badge {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .tag-badge:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .tag-badge.active {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+/* Notes Area */
+[data-theme="dark"] .notes-area {
+  background-color: var(--bg-primary);
+}
+
+/* Note Cards */
+[data-theme="dark"] .note-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .note-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .note-card-title {
+  color: var(--note-text);
+}
+
+[data-theme="dark"] .note-card-preview {
+  color: var(--note-text-secondary);
+}
+
+[data-theme="dark"] .note-card-footer {
+  border-top-color: var(--note-border);
+  color: var(--note-text-secondary);
+}
+
+/* Empty State */
+[data-theme="dark"] .empty-state {
+  background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .empty-icon {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .empty-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .empty-text {
+  color: var(--text-secondary);
+}
+
+/* Status Bar */
+[data-theme="dark"] .status-bar {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+/* Context Menu */
+[data-theme="dark"] .context-menu {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .menu-item {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .menu-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .menu-divider {
+  background-color: var(--border-color);
+}
+
+/* Dropdowns / Color Picker */
+[data-theme="dark"] .color-picker-dropdown {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Table */
+[data-theme="dark"] table {
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] th,
+[data-theme="dark"] td {
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] th {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] tr:hover {
+  background-color: var(--bg-secondary);
+}
+
+/* Toggle Switch */
+[data-theme="dark"] .toggle-slider {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .toggle input:checked+.toggle-slider {
+  background-color: var(--accent-primary);
+}
+
+/* Modal / Dialog */
+[data-theme="dark"] .modal-backdrop,
+[data-theme="dark"] .dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .dialog-content {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .dialog-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .dialog-footer {
+  border-top-color: var(--border-color);
+}
+
+/* Note Window Title Bar */
+[data-theme="dark"] .note-titlebar {
+  background-color: var(--note-title-bg);
+}
+
+[data-theme="dark"] .note-title-input {
+  color: var(--note-text);
+}
+
+[data-theme="dark"] .note-title-input::placeholder {
+  color: var(--note-text-secondary);
+}
+
+/* Note Editor */
+[data-theme="dark"] .note-editor {
+  background-color: var(--note-bg);
+  color: var(--note-text);
+}
+
+/* Note Toolbar */
+[data-theme="dark"] .note-toolbar {
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .note-toolbar .toolbar-btn {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .note-toolbar .toolbar-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .note-toolbar .toolbar-btn.active {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+/* Settings Page */
+[data-theme="dark"] .settings-container {
+  background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .settings-sidebar {
+  background-color: var(--bg-secondary);
+  border-right-color: var(--border-color);
+}
+
+[data-theme="dark"] .nav-item {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .nav-item:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .nav-item.active {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+[data-theme="dark"] .settings-content {
+  background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .section-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .setting-group {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .setting-name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .setting-description {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .setting-input,
+[data-theme="dark"] .setting-select {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .setting-input:focus,
+[data-theme="dark"] .setting-select:focus {
+  border-color: var(--accent-primary);
+}
+
+[data-theme="dark"] .setting-input.shortcut:focus {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+/* About Section */
+[data-theme="dark"] .about-name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .about-version {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .about-description {
+  color: var(--text-secondary);
+}
+
+/* Checkbox in Note */
+[data-theme="dark"] .checkbox span {
+  color: var(--note-text);
+}
+
+/* Links */
+[data-theme="dark"] a {
+  color: var(--accent-primary);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--accent-primary-hover);
+}
+
+/* History List */
+[data-theme="dark"] .history-item {
+  background-color: var(--bg-secondary);
+}
+
+[data-theme="dark"] .history-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .history-date {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .history-preview {
+  color: var(--text-muted);
+}
+
+/* Tags in dialogs */
+[data-theme="dark"] .tag-item {
+  background-color: var(--accent-primary);
+}
+
+/* Quick reminder buttons */
+[data-theme="dark"] .quick-reminders .btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .quick-reminders .btn:hover {
+  background-color: var(--border-color);
+}

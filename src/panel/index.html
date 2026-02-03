@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
+  <title>The Real StickyNotes</title>
+  <link rel="stylesheet" href="../styles/variables.css">
+  <link rel="stylesheet" href="../styles/themes.css">
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/dark.css">
+  <link rel="stylesheet" href="../styles/animations.css">
+  <link rel="stylesheet" href="panel.css">
+</head>
+
+<body>
+  <div class="panel-container">
+    <!-- Header / Title Bar -->
+    <header class="panel-header">
+      <div class="header-left">
+        <h1 class="app-title">The Real StickyNotes</h1>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-icon btn-ghost settings-btn" id="settingsBtn" title="Settings">
+          <span class="settings-gear">&#9881;</span>
+        </button>
+        <div class="window-controls">
+          <button class="window-btn minimize-btn" id="minimizeBtn" title="Minimize">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14" />
+            </svg>
+          </button>
+          <button class="window-btn maximize-btn" id="maximizeBtn" title="Maximize">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+            </svg>
+          </button>
+          <button class="window-btn close-btn" id="closeBtn" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-bar">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none">
+        <circle cx="11" cy="11" r="8" />
+        <path d="M21 21l-4.35-4.35" />
+      </svg>
+      <input type="text" class="search-input" id="searchInput" placeholder="Search notes..." />
+      <button class="search-clear" id="searchClear" hidden>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="btn btn-primary btn-sm" id="newNoteBtn">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          New Note
+        </button>
+      </div>
+      <div class="toolbar-right">
+        <select class="filter-select" id="filterSelect">
+          <option value="all">All Notes</option>
+          <option value="archived">Archived</option>
+          <option value="trash">Trash</option>
+        </select>
+        <select class="sort-select" id="sortSelect">
+          <option value="updated">Last Modified</option>
+          <option value="created">Created</option>
+          <option value="title">Title</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Sidebar & Content -->
+    <div class="main-content">
+      <!-- Sidebar (Folders) -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Folders</span>
+          <button class="btn btn-icon btn-ghost btn-sm" id="newFolderBtn" title="New folder">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
+        <nav class="folder-tree" id="folderTree">
+          <button class="folder-item active" data-folder="all">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            All Notes
+            <span class="folder-count" id="allNotesCount">0</span>
+          </button>
+          <div id="folderList"></div>
+        </nav>
+
+        <div class="sidebar-section">
+          <span class="sidebar-title">Tags</span>
+        </div>
+        <div class="tag-list" id="tagList"></div>
+      </aside>
+
+      <!-- Notes Grid -->
+      <main class="notes-area">
+        <div class="notes-grid" id="notesGrid">
+          <!-- Notes will be rendered here -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" hidden>
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <p class="empty-title">No notes yet</p>
+          <p class="empty-description">Create your first sticky note to get started</p>
+          <button class="btn btn-primary" id="emptyNewNoteBtn">Create Note</button>
+        </div>
+
+        <!-- Search Empty State -->
+        <div class="empty-state" id="searchEmptyState" hidden>
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <p class="empty-title">No results found</p>
+          <p class="empty-description">Try a different search term</p>
+        </div>
+      </main>
+    </div>
+
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay" id="confirmModal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="confirmTitle">Confirm Action</h3>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage">Are you sure?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="confirmCancelBtn">Cancel</button>
+        <button class="btn btn-danger" id="confirmOkBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <footer class="status-bar">
+    <span id="noteCount">0 notes</span>
+    <span class="version" id="appVersion"></span>
+  </footer>
+  </div>
+
+  <!-- Context Menu Template -->
+  <div class="context-menu" id="noteContextMenu" hidden>
+    <button class="menu-item" data-action="open">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+        <polyline points="15 3 21 3 21 9" />
+        <line x1="10" y1="14" x2="21" y2="3" />
+      </svg>
+      Open
+    </button>
+    <button class="menu-item" data-action="duplicate">
+      <svg viewBox="0 0 24 24" fill="none">
+        <rect x="9" y="9" width="13" height="13" rx="2" />
+        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+      </svg>
+      Duplicate
+    </button>
+    <div class="menu-separator"></div>
+    <button class="menu-item" data-action="archive">
+      <svg viewBox="0 0 24 24" fill="none">
+        <polyline points="21 8 21 21 3 21 3 8" />
+        <rect x="1" y="3" width="22" height="5" />
+      </svg>
+      Archive
+    </button>
+    <button class="menu-item danger" data-action="delete">
+      <svg viewBox="0 0 24 24" fill="none">
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+      </svg>
+      Delete
+    </button>
+  </div>
+
+  <script src="panel.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Disabled feature files (preserved for future re-enabling)
+src/note/transcription.js
