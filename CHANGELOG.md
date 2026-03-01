@@ -5,6 +5,21 @@ All notable changes to The Real StickyNotes will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed macOS DMG builds failing to launch — `better-sqlite3` native module was broken by cross-compilation on ARM runner targeting x64
+- Fixed macOS Gatekeeper blocking app entirely due to `hardenedRuntime: true` without code signing
+
+### Changed
+
+- Split macOS CI into native architecture runners (`macos-13` for x64, `macos-latest` for arm64)
+- macOS builds are now signed with Developer ID Application certificate
+- macOS builds are now notarized with Apple, eliminating the "Apple could not verify" warning
+- Added `afterSign` hook with ad-hoc signing fallback for local/unsigned builds
+- Added `@electron/notarize` dependency for Apple notarization
+
 ## [0.2.1] - 2026-02-26
 
 ### Security
