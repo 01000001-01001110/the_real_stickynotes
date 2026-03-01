@@ -62,23 +62,22 @@ fileAssociations:
     mimeType: application/x-stickynote
 
 # macOS Configuration
+# Note: arch is controlled per-CI-job to avoid cross-compiling native modules.
+# Each runner builds only its native arch, ensuring better-sqlite3 works correctly.
 mac:
   target:
     - target: dmg
-      arch:
-        - x64
-        - arm64
     - target: zip
-      arch:
-        - x64
-        - arm64
   icon: assets/icons/icons/mac/icon.icns
   category: public.app-category.productivity
   artifactName: '${productName}-${version}-mac-${arch}.${ext}'
-  hardenedRuntime: true
+  hardenedRuntime: false
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+
+# Ad-hoc sign the app so macOS allows it to launch after Gatekeeper bypass
+afterSign: build/notarize.js
 
 dmg:
   sign: false

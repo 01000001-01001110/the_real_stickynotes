@@ -41,10 +41,18 @@ jobs:
         include:
           - os: windows-latest
             platform: win
+            arch: x64
+          # macOS x64 must build on Intel runner to compile native modules correctly
+          - os: macos-13
+            platform: mac
+            arch: x64
+          # macOS arm64 builds on Apple Silicon runner
           - os: macos-latest
             platform: mac
+            arch: arm64
           - os: ubuntu-latest
             platform: linux
+            arch: x64
 
     runs-on: ${{ matrix.os }}
 
@@ -58,6 +66,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Python (for native modules)
+        if: matrix.platform == 'mac' || matrix.platform == 'linux'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Sync version from tag
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
@@ -69,8 +83,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build for ${{ matrix.platform }}
-        run: npx electron-builder --${{ matrix.platform }} --publish never
+      - name: Build for ${{ matrix.platform }} (${{ matrix.arch }})
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -79,7 +93,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: StickyNotes-${{ matrix.platform }}
+          name: StickyNotes-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             dist/*.exe
             dist/*.dmg
@@ -102,6 +116,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: false
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
