@@ -71,7 +71,8 @@ mac:
   icon: assets/icons/icons/mac/icon.icns
   category: public.app-category.productivity
   artifactName: '${productName}-${version}-mac-${arch}.${ext}'
-  hardenedRuntime: false
+  hardenedRuntime: true
+  identity: "Developer ID Application: Alan Newingham (AT926WNLT9)"
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
