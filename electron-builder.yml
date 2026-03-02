@@ -72,8 +72,9 @@ mac:
   category: public.app-category.productivity
   artifactName: '${productName}-${version}-mac-${arch}.${ext}'
   hardenedRuntime: true
-  identity: "Alan Newingham (AT926WNLT9)"
+  identity: 'Alan Newingham (AT926WNLT9)'
   gatekeeperAssess: false
+  notarize: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
 

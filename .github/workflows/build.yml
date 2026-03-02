@@ -42,8 +42,8 @@ jobs:
           - os: windows-latest
             platform: win
             arch: x64
-          # macOS x64 must build on Intel runner to compile native modules correctly
-          - os: macos-13
+          # macOS x64 cross-compiled from ARM runner (macos-13 Intel runners removed by GitHub)
+          - os: macos-latest
             platform: mac
             arch: x64
           # macOS arm64 builds on Apple Silicon runner
