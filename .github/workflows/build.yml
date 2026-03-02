@@ -41,10 +41,18 @@ jobs:
         include:
           - os: windows-latest
             platform: win
+            arch: x64
+          # macOS x64 must build on Intel runner to compile native modules correctly
+          - os: macos-13
+            platform: mac
+            arch: x64
+          # macOS arm64 builds on Apple Silicon runner
           - os: macos-latest
             platform: mac
+            arch: arm64
           - os: ubuntu-latest
             platform: linux
+            arch: x64
 
     runs-on: ${{ matrix.os }}
 
@@ -58,6 +66,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Python (for native modules)
+        if: matrix.platform == 'mac' || matrix.platform == 'linux'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Sync version from tag
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
@@ -66,20 +80,50 @@ jobs:
           echo "Setting version to $VERSION"
           npm version $VERSION --no-git-tag-version --allow-same-version
 
+      - name: Import code signing certificate (macOS)
+        if: matrix.platform == 'mac'
+        env:
+          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          # Create a temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate
+          echo "$CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          rm $RUNNER_TEMP/certificate.p12
+
+          # Allow codesign to access the keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychains -d user -s $KEYCHAIN_PATH login.keychain-db
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Build for ${{ matrix.platform }}
-        run: npx electron-builder --${{ matrix.platform }} --publish never
+      - name: Build for ${{ matrix.platform }} (${{ matrix.arch }})
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Clean up keychain (macOS)
+        if: matrix.platform == 'mac' && always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
 
       - name: Upload artifacts
         if: '!cancelled()'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: StickyNotes-${{ matrix.platform }}
+          name: StickyNotes-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             dist/*.exe
             dist/*.dmg
@@ -102,6 +146,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: false
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
