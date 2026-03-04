@@ -134,6 +134,16 @@ body {
   stroke: white;
 }
 
+/* macOS: hide custom window controls (native traffic lights are used) */
+.platform-darwin .window-controls {
+  display: none;
+}
+
+/* macOS: add left padding so title doesn't overlap traffic lights */
+.platform-darwin .panel-header {
+  padding-left: 78px;
+}
+
 /* Search Bar */
 .search-bar {
   display: flex;

@@ -114,6 +114,16 @@ body {
   color: var(--accent-primary);
 }
 
+/* macOS: hide custom close button (native traffic lights handle close/minimize/maximize) */
+.platform-darwin .titlebar-right .close-btn {
+  display: none;
+}
+
+/* macOS: add left padding so content doesn't overlap traffic lights */
+.platform-darwin .note-titlebar {
+  padding-left: 70px;
+}
+
 .note-title-input {
   width: 100%;
   max-width: 200px;

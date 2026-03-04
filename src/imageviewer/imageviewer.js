@@ -3,6 +3,11 @@
  * Features: Zoom, Rotate, Draw, Undo (up to 5), Save
  */
 
+// Platform detection - add class for platform-specific CSS
+if (window.api && window.api.getPlatform && window.api.getPlatform() === 'darwin') {
+  document.body.classList.add('platform-darwin');
+}
+
 // State
 let imageSrc = null;
 let zoom = 100;

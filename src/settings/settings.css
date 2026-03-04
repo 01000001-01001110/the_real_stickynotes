@@ -64,6 +64,16 @@
   color: white;
 }
 
+/* macOS: hide custom window controls (native traffic lights are used) */
+.platform-darwin .settings-titlebar .window-controls {
+  display: none;
+}
+
+/* macOS: add left padding so title doesn't overlap traffic lights */
+.platform-darwin .settings-titlebar {
+  padding-left: 78px;
+}
+
 .settings-container {
   display: flex;
   height: calc(100vh - 60px);

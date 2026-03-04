@@ -103,6 +103,9 @@ contextBridge.exposeInMainWorld('api', {
   setAlwaysOnTop: (value) => ipcRenderer.invoke('window:setAlwaysOnTop', value),
   setWindowOpacity: (value) => ipcRenderer.invoke('window:setOpacity', value),
 
+  // Platform
+  getPlatform: () => process.platform,
+
   // App
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
   checkForUpdates: () => ipcRenderer.invoke('app:checkUpdates'),
