@@ -1,6 +1,6 @@
 {
   "name": "stickynotes",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "The Real StickyNotes - a feature-rich sticky notes application with CLI support",
   "main": "electron/main.js",
   "bin": {
