@@ -168,6 +168,7 @@ body {
   border: none;
   background: transparent;
   padding: var(--space-xs) 0;
+  margin-left: var(--space-xs);
   font-size: 15px;
   color: var(--text-primary);
 }
@@ -243,6 +244,8 @@ body {
   align-items: center;
   gap: 6px;
   font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 #newNoteBtn:hover {
