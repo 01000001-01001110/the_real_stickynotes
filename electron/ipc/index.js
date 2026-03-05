@@ -40,9 +40,9 @@ function setupIpcHandlers(windowManager) {
     return app.getVersion();
   });
 
-  ipcMain.handle('app:checkUpdates', () => {
+  ipcMain.handle('app:checkUpdates', async () => {
     const { checkForUpdates } = require('../updater');
-    checkForUpdates();
+    return await checkForUpdates(true);
   });
 
   ipcMain.handle('app:quit', () => {

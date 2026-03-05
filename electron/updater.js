@@ -11,16 +11,24 @@ const debugLog = (...args) => {
 
 let updateAvailable = false;
 let updateDownloaded = false;
+let initialized = false;
+
+// Track pending manual check resolve callback
+let manualCheckCallback = null;
 
 /**
- * Check for updates
+ * Initialize the auto-updater (call once at startup)
+ * Registers event listeners and configures settings.
  */
-function checkForUpdates() {
+function initUpdater() {
+  if (initialized) return;
+  initialized = true;
+
   // Configure auto-updater
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
-  // Event handlers
+  // Event handlers (registered once)
   autoUpdater.on('checking-for-update', () => {
     debugLog('Checking for updates...');
   });
@@ -28,15 +36,34 @@ function checkForUpdates() {
   autoUpdater.on('update-available', (info) => {
     updateAvailable = true;
     debugLog('Update available:', info.version);
+
+    // Resolve manual check if pending
+    if (manualCheckCallback) {
+      manualCheckCallback({ status: 'update-available', version: info.version });
+      manualCheckCallback = null;
+    }
+
     showUpdateNotification(info.version);
   });
 
   autoUpdater.on('update-not-available', () => {
     debugLog('No updates available');
+
+    // Resolve manual check if pending
+    if (manualCheckCallback) {
+      manualCheckCallback({ status: 'up-to-date' });
+      manualCheckCallback = null;
+    }
   });
 
   autoUpdater.on('error', (err) => {
     console.error('Update error:', err);
+
+    // Resolve manual check if pending
+    if (manualCheckCallback) {
+      manualCheckCallback({ status: 'error', message: err.message });
+      manualCheckCallback = null;
+    }
   });
 
   autoUpdater.on('download-progress', (progress) => {
@@ -48,8 +75,40 @@ function checkForUpdates() {
     debugLog('Update downloaded:', info.version);
     showRestartDialog(info.version);
   });
+}
 
-  // Check for updates
+/**
+ * Check for updates (safe to call multiple times — no duplicate listeners)
+ * @param {boolean} manual - Whether this is a user-initiated check
+ * @returns {Promise<{status: string, version?: string, message?: string}>}
+ */
+function checkForUpdates(manual = false) {
+  // Ensure listeners are set up
+  initUpdater();
+
+  if (manual) {
+    return new Promise((resolve) => {
+      manualCheckCallback = resolve;
+
+      try {
+        autoUpdater.checkForUpdates();
+      } catch (err) {
+        console.error('Failed to check for updates:', err);
+        manualCheckCallback = null;
+        resolve({ status: 'error', message: err.message });
+      }
+
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        if (manualCheckCallback) {
+          manualCheckCallback = null;
+          resolve({ status: 'error', message: 'Update check timed out' });
+        }
+      }, 30000);
+    });
+  }
+
+  // Silent/automatic check at startup
   try {
     autoUpdater.checkForUpdates();
   } catch (err) {
@@ -132,6 +191,7 @@ function isUpdateDownloaded() {
 }
 
 module.exports = {
+  initUpdater,
   checkForUpdates,
   downloadUpdate,
   quitAndInstall,
