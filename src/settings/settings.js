@@ -350,8 +350,31 @@ function setupEventListeners() {
   });
 
   // Check for updates button
-  document.getElementById('checkUpdatesBtn').addEventListener('click', () => {
-    api.checkForUpdates();
+  const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
+  checkUpdatesBtn.addEventListener('click', async () => {
+    const originalText = checkUpdatesBtn.textContent;
+    checkUpdatesBtn.textContent = 'Checking...';
+    checkUpdatesBtn.disabled = true;
+
+    try {
+      const result = await api.checkForUpdates();
+
+      if (result && result.status === 'up-to-date') {
+        checkUpdatesBtn.textContent = 'You\'re up to date!';
+      } else if (result && result.status === 'update-available') {
+        checkUpdatesBtn.textContent = `Update ${result.version} available!`;
+      } else if (result && result.status === 'error') {
+        checkUpdatesBtn.textContent = 'Update check failed';
+      }
+    } catch {
+      checkUpdatesBtn.textContent = 'Update check failed';
+    }
+
+    // Reset button after 5 seconds
+    setTimeout(() => {
+      checkUpdatesBtn.textContent = originalText;
+      checkUpdatesBtn.disabled = false;
+    }, 5000);
   });
 }
 

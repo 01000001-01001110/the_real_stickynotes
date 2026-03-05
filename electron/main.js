@@ -18,7 +18,7 @@ const { setupShortcuts, unregisterShortcuts } = require('./shortcuts');
 const { WindowManager } = require('./windows/manager');
 const { setupIpcHandlers } = require('./ipc');
 const { setupReminders, stopReminders } = require('./reminders');
-const { checkForUpdates } = require('./updater');
+const { initUpdater, checkForUpdates } = require('./updater');
 
 // CLI support
 const { isCliMode, parseArgs } = require('./cli/parser');
@@ -294,7 +294,8 @@ async function createApp() {
     // Restore previously open notes
     windowManager.restoreOpenNotes();
 
-    // Check for updates
+    // Initialize and check for updates
+    initUpdater();
     checkForUpdates();
 
     debugLog('StickyNotes started successfully');
