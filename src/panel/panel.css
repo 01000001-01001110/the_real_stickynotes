@@ -35,6 +35,9 @@ body {
 .header-left {
   display: flex;
   align-items: center;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .app-title {
@@ -42,6 +45,10 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .header-right {
@@ -134,6 +141,16 @@ body {
   stroke: white;
 }
 
+/* macOS: hide custom window controls (native traffic lights are used) */
+.platform-darwin .window-controls {
+  display: none;
+}
+
+/* macOS: add left padding so title doesn't overlap traffic lights */
+.platform-darwin .panel-header {
+  padding-left: 78px;
+}
+
 /* Search Bar */
 .search-bar {
   display: flex;
@@ -158,6 +175,7 @@ body {
   border: none;
   background: transparent;
   padding: var(--space-xs) 0;
+  margin-left: var(--space-xs);
   font-size: 15px;
   color: var(--text-primary);
 }
@@ -206,6 +224,7 @@ body {
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  gap: var(--space-sm);
 }
 
 .toolbar-left,
@@ -213,6 +232,11 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.toolbar-right {
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .btn-sm {
@@ -233,6 +257,8 @@ body {
   align-items: center;
   gap: 6px;
   font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 #newNoteBtn:hover {
@@ -286,6 +312,9 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .filter-select:hover,
@@ -857,6 +886,64 @@ body {
 
 .status-bar .version {
   opacity: 0.7;
+}
+
+/* Responsive - compact layout for narrow panels */
+@media (max-width: 420px) {
+  .panel-header {
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  .platform-darwin .panel-header {
+    padding-left: 72px;
+  }
+
+  .app-title {
+    font-size: 15px;
+  }
+
+  .toolbar {
+    padding: var(--space-xs) var(--space-md);
+  }
+
+  #newNoteBtn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .filter-select,
+  .sort-select {
+    max-width: 90px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .search-bar {
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+@media (max-width: 360px) {
+  .app-title {
+    font-size: 13px;
+  }
+
+  .platform-darwin .panel-header {
+    padding-left: 68px;
+  }
+
+  #newNoteBtn {
+    padding: 4px 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .filter-select,
+  .sort-select {
+    max-width: 65px;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
 }
 
 /* Responsive - hide sidebar on narrow screens */

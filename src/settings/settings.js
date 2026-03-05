@@ -2,6 +2,11 @@
  * Settings Window Script
  */
 
+// Platform detection - add class for platform-specific CSS
+if (window.api && window.api.getPlatform && window.api.getPlatform() === 'darwin') {
+  document.body.classList.add('platform-darwin');
+}
+
 // Setting element IDs mapped to setting keys
 const settingMappings = {
   // General

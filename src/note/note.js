@@ -2,6 +2,11 @@
  * Note Window Script
  */
 
+// Platform detection - add class for platform-specific CSS
+if (window.api && window.api.getPlatform && window.api.getPlatform() === 'darwin') {
+  document.body.classList.add('platform-darwin');
+}
+
 // CRITICAL: Catch ALL errors including those that would cause white screen
 window.onerror = function (message, source, lineno, colno, error) {
   console.error('[CRITICAL ERROR CAUGHT]', {

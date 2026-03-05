@@ -133,6 +133,11 @@ function setupTray(wm) {
       // Create a simple colored icon if file doesn't exist
       icon = nativeImage.createEmpty();
     }
+    // macOS menu bar expects 16x16 point icons (32x32 @2x)
+    if (process.platform === 'darwin') {
+      icon = icon.resize({ width: 16, height: 16 });
+      icon.setTemplateImage(true);
+    }
   } catch (err) {
     console.warn('Could not load tray icon:', err);
     icon = nativeImage.createEmpty();

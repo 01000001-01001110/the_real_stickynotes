@@ -379,6 +379,7 @@ class WindowManager {
       minWidth: 200,
       minHeight: 150,
       frame: false,
+      titleBarStyle: 'hidden',
       transparent: false,
       alwaysOnTop: note.is_pinned === 1,
       opacity,

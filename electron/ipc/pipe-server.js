@@ -57,37 +57,51 @@ function cleanupStalePipe(pipePath) {
 
   // Windows named pipes are automatically cleaned up by the OS
   if (platform === 'win32') {
-    return;
+    return Promise.resolve();
   }
 
   // Unix: Remove stale socket file if it exists
-  try {
-    if (fs.existsSync(pipePath)) {
-      // Try to connect to see if server is already running
-      const testSocket = net.connect(pipePath, () => {
-        // Connection succeeded - server is running
-        testSocket.destroy();
-        throw new Error(`Pipe server already running at ${pipePath}`);
-      });
-
-      testSocket.on('error', (err) => {
-        // Connection failed - socket is stale
-        if (err.code === 'ECONNREFUSED' || err.code === 'ENOENT') {
-          try {
-            fs.unlinkSync(pipePath);
-            debugLog(`Cleaned up stale socket: ${pipePath}`);
-          } catch (unlinkErr) {
-            console.warn(`Failed to clean up stale socket: ${unlinkErr.message}`);
-          }
-        }
-      });
-    }
-  } catch (err) {
-    if (err.message.includes('already running')) {
-      throw err;
-    }
-    console.warn(`Error during stale pipe cleanup: ${err.message}`);
+  if (!fs.existsSync(pipePath)) {
+    return Promise.resolve();
   }
+
+  return new Promise((resolve, reject) => {
+    // Try to connect to see if server is already running
+    const testSocket = net.connect(pipePath, () => {
+      // Connection succeeded - another instance is running
+      testSocket.destroy();
+      reject(new Error(`Pipe server already running at ${pipePath}`));
+    });
+
+    testSocket.setTimeout(1000);
+
+    testSocket.on('timeout', () => {
+      testSocket.destroy();
+      // Timed out - socket is stale, remove it
+      try {
+        fs.unlinkSync(pipePath);
+        debugLog(`Cleaned up stale socket (timeout): ${pipePath}`);
+      } catch (unlinkErr) {
+        console.warn(`Failed to clean up stale socket: ${unlinkErr.message}`);
+      }
+      resolve();
+    });
+
+    testSocket.on('error', (err) => {
+      // Connection failed - socket is stale, remove it
+      if (err.code === 'ECONNREFUSED' || err.code === 'ENOENT') {
+        try {
+          fs.unlinkSync(pipePath);
+          debugLog(`Cleaned up stale socket: ${pipePath}`);
+        } catch (unlinkErr) {
+          console.warn(`Failed to clean up stale socket: ${unlinkErr.message}`);
+        }
+        resolve();
+      } else {
+        reject(err);
+      }
+    });
+  });
 }
 
 /**
@@ -372,7 +386,7 @@ class PipeServer extends EventEmitter {
 
     // Clean up stale pipes (Unix only)
     try {
-      cleanupStalePipe(this.pipePath);
+      await cleanupStalePipe(this.pipePath);
     } catch (err) {
       throw new Error(`Failed to start pipe server: ${err.message}`);
     }
