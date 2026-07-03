@@ -10,6 +10,19 @@ const os = require('os');
 const { EventEmitter } = require('events');
 
 /**
+ * Compute the platform-specific pipe path. MUST match the server's getPipePath
+ * in electron/ipc/pipe-server.js: Windows named pipe vs Unix domain socket.
+ * @returns {string}
+ */
+function defaultPipePath() {
+  if (os.platform() === 'win32') {
+    const username = os.userInfo().username.replace(/[^a-zA-Z0-9_-]/g, '_');
+    return `\\\\.\\pipe\\stickynotes-${username}`;
+  }
+  return `/tmp/stickynotes-${os.userInfo().uid}.sock`;
+}
+
+/**
  * Custom error class for pipe client errors
  */
 class PipeClientError extends Error {
@@ -57,9 +70,10 @@ class PipeClient extends EventEmitter {
     this.backoff = options.backoff || [500, 1000, 2000];
     this.connectTimeout = options.connectTimeout || 3000;
 
-    // Per-user pipe path for Windows (sanitize username for special characters)
-    const username = os.userInfo().username.replace(/[^a-zA-Z0-9_-]/g, '_');
-    this.pipePath = options.pipeName || `\\\\.\\pipe\\stickynotes-${username}`;
+    // Per-user pipe path — Windows named pipe or Unix domain socket, matching
+    // the server. Previously hardcoded to the Windows format, which broke the
+    // CLI on macOS/Linux (server listens on a Unix socket there).
+    this.pipePath = options.pipeName || defaultPipePath();
 
     this.socket = null;
     this.connected = false;
@@ -473,4 +487,5 @@ module.exports = {
   PipeClient,
   PipeClientError,
   ERROR_CODES,
+  defaultPipePath,
 };
