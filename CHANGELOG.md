@@ -7,10 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-03
+
+### Security
+
+- Named-pipe IPC now requires a per-user token handshake; unauthenticated connections are rejected (`PERMISSION_DENIED`) and dropped. Closes an unauthenticated-local-access hole where any process could drive the full method registry. **Breaking for existing CLI automation** — the shipped CLI presents the token automatically; third-party clients must send an `auth` frame first.
+- Locking a note now purges its plaintext version history (`note_history`), and history reads are refused while a note is locked.
+- `is_locked`/`password_hash` can no longer be set through the generic note-update path — lock state only transitions via lock/unlock.
+- Note-lock key derivation strengthened from PBKDF2 100k to 600k (SHA-256) with a versioned blob format; existing notes still decrypt and re-encrypt at the stronger setting on next lock.
+- All note-content HTML render paths (load, live update, history restore) are now sanitized, not just paste.
+- Added a per-note unlock throttle (lockout after repeated failures) to blunt password brute-forcing.
+
 ### Fixed
 
+- **Named-pipe dispatch was completely broken** (registry shape mismatch) — every CLI command returned `METHOD_NOT_FOUND`. The standalone CLI now works end-to-end.
+- Standalone CLI client used a Windows-only pipe path; now connects on macOS/Linux via the Unix domain socket.
+- Pipe broadcasts and `app:*` control methods (window manager was never injected after startup).
+- `app status` crashed on an undefined `getDatabasePath`.
+- SQLite→YAML settings migration never ran (called a non-existent function).
+- Note opacity slider could be dragged below the persistable range, silently failing to save and making a note invisible.
 - Fixed macOS DMG builds failing to launch — `better-sqlite3` native module was broken by cross-compilation on ARM runner targeting x64
 - Fixed macOS Gatekeeper blocking app entirely due to `hardenedRuntime: true` without code signing
+
+### Added
+
+- CLI parity: 26 previously-unreachable operations are now available over the pipe/CLI — permanent delete, trash stats/purge, password verify, version revert, tag delete/rename/cleanup, folder tree, wiki-link queries, config reset/get-multiple/default-paths, headless window control (open/close/show-all/hide-all), and attachment management. See `docs/cli-parity-map.md`.
 
 ### Changed
 
