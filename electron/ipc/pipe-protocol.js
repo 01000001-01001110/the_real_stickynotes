@@ -190,9 +190,27 @@ function serializeMessage(message) {
 }
 
 /**
+ * Resolve a method handler from either a MethodRegistry instance
+ * (handlers stored in a Map, invoked via .call()) or a plain
+ * `{ method: handlerFn }` object. This bridge is essential: the production
+ * registry from createRegistry() is a MethodRegistry, but this module (and
+ * some tests) also accept plain maps.
+ * @param {object} methodRegistry
+ * @param {string} method
+ * @returns {Function|null} A `(params) => Promise<result>` handler, or null.
+ */
+function resolveHandler(methodRegistry, method) {
+  if (!methodRegistry) return null;
+  if (typeof methodRegistry.has === 'function' && typeof methodRegistry.call === 'function') {
+    return methodRegistry.has(method) ? (params) => methodRegistry.call(method, params) : null;
+  }
+  return typeof methodRegistry[method] === 'function' ? methodRegistry[method] : null;
+}
+
+/**
  * Handle a single JSON-RPC request
  * @param {object} request - The validated request object
- * @param {object} methodRegistry - Map of method names to handler functions
+ * @param {object} methodRegistry - MethodRegistry instance or plain handler map
  * @returns {Promise<object>} Response object (or null for notifications)
  */
 async function handleRequest(request, methodRegistry) {
@@ -208,7 +226,7 @@ async function handleRequest(request, methodRegistry) {
   const isNotification = id === undefined;
 
   // Check if method exists
-  const handler = methodRegistry[method];
+  const handler = resolveHandler(methodRegistry, method);
   if (!handler) {
     if (isNotification) {
       // Silent failure for notifications

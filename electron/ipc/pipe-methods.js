@@ -110,11 +110,25 @@ class MethodRegistry {
 
 /**
  * Create and configure the method registry
- * @param {WindowManager} windowManager - Window manager instance
+ * @param {Object|WindowManager} stores - Either a stores object
+ *   ({ windowManager, getSetting, ... }) whose `windowManager` may be injected
+ *   AFTER this call (the pipe server starts in Phase 2, before the WindowManager
+ *   exists in Phase 3), or a raw WindowManager (legacy/tests).
  * @returns {MethodRegistry}
  */
-function createRegistry(windowManager) {
+function createRegistry(stores) {
   const registry = new MethodRegistry();
+
+  // Late-bound window manager. The registry is built before the WindowManager
+  // exists, so handlers must resolve it at call time — not capture it here.
+  // Accepts a stores wrapper (preferred) or a raw WindowManager.
+  const resolveWM = () => {
+    if (!stores) return null;
+    if (typeof stores.broadcast === 'function' || typeof stores.showPanel === 'function') {
+      return stores; // raw WindowManager
+    }
+    return stores.windowManager || null;
+  };
 
   // Import database functions lazily to avoid circular dependencies
   const getNotes = () => require('../../shared/database/notes').getNotes;
@@ -127,18 +141,30 @@ function createRegistry(windowManager) {
   const duplicateNote = () => require('../../shared/database/notes').duplicateNote;
   const lockNote = () => require('../../shared/database/notes').lockNote;
   const unlockNote = () => require('../../shared/database/notes').unlockNote;
+  const permanentlyDeleteNote = () => require('../../shared/database/notes').permanentlyDeleteNote;
+  const verifyPasswordSync = () => require('../../shared/crypto').verifyPasswordSync;
+  const revertToVersion = () => require('../../shared/database/history').revertToVersion;
 
   const getTags = () => require('../../shared/database/tags').getTags;
   const getTagsForNote = () => require('../../shared/database/tags').getTagsForNote;
+  const getTagsForNotes = () => require('../../shared/database/tags').getTagsForNotes;
   const addTagToNote = () => require('../../shared/database/tags').addTagToNote;
   const removeTagFromNote = () => require('../../shared/database/tags').removeTagFromNote;
   const setNoteTags = () => require('../../shared/database/tags').setNoteTags;
+  const deleteTagByName = () => require('../../shared/database/tags').deleteTagByName;
+  const renameTag = () => require('../../shared/database/tags').renameTag;
+  const cleanupOrphanedTags = () => require('../../shared/database/tags').cleanupOrphanedTags;
 
   const getFolders = () => require('../../shared/database/folders').getFolders;
+  const getFolderTree = () => require('../../shared/database/folders').getFolderTree;
   const createFolder = () => require('../../shared/database/folders').createFolder;
   const updateFolder = () => require('../../shared/database/folders').updateFolder;
   const deleteFolder = () => require('../../shared/database/folders').deleteFolder;
   const moveNoteToFolder = () => require('../../shared/database/folders').moveNoteToFolder;
+
+  const getOutgoingLinks = () => require('../../shared/database/links').getOutgoingLinks;
+  const getBacklinks = () => require('../../shared/database/links').getBacklinks;
+  const createNoteFromLink = () => require('../../shared/database/links').createNoteFromLink;
 
   const searchNotes = () => require('../../shared/database/search').searchNotes;
   const searchByTag = () => require('../../shared/database/search').searchByTag;
@@ -149,6 +175,18 @@ function createRegistry(windowManager) {
 
   const validateNote = () => require('../../shared/utils/validators').validateNote;
   const isValidNoteId = () => require('../../shared/utils/validators').isValidNoteId;
+
+  // ============================================================================
+  // AUTH
+  // ============================================================================
+
+  // The real token check happens at the connection layer (pipe-server.js) before
+  // any method is dispatched. This handler only exists so the client's uniform
+  // "send auth first" handshake succeeds when auth is disabled (dev/tests) or the
+  // connection is already authenticated — it never gates anything by itself.
+  registry.register('auth', async () => ({ authenticated: true }), {
+    description: 'Authenticate the connection (token verified at the connection layer)',
+  });
 
   // ============================================================================
   // NOTE OPERATIONS
@@ -197,8 +235,8 @@ function createRegistry(windowManager) {
         const note = createNote()(noteData);
 
         // Broadcast to other clients
-        if (windowManager) {
-          windowManager.broadcast('note:created', note);
+        if (resolveWM()) {
+          resolveWM().broadcast('note:created', note);
         }
 
         return { success: true, note };
@@ -253,8 +291,8 @@ function createRegistry(windowManager) {
           }
 
           // Broadcast to other clients
-          if (windowManager) {
-            windowManager.broadcast('note:updated', note);
+          if (resolveWM()) {
+            resolveWM().broadcast('note:updated', note);
           }
         }
 
@@ -275,8 +313,8 @@ function createRegistry(windowManager) {
 
       const success = deleteNote()(params.id);
 
-      if (success && windowManager) {
-        windowManager.broadcast('note:deleted', params.id);
+      if (success && resolveWM()) {
+        resolveWM().broadcast('note:deleted', params.id);
       }
 
       return { success };
@@ -299,8 +337,8 @@ function createRegistry(windowManager) {
         });
       }
 
-      if (windowManager) {
-        windowManager.broadcast('note:created', note);
+      if (resolveWM()) {
+        resolveWM().broadcast('note:created', note);
       }
 
       return { success: true, note };
@@ -321,8 +359,8 @@ function createRegistry(windowManager) {
         throw new NotFoundError('note', params.id);
       }
 
-      if (windowManager) {
-        windowManager.broadcast('note:updated', note);
+      if (resolveWM()) {
+        resolveWM().broadcast('note:updated', note);
       }
 
       return { success: true, note };
@@ -343,8 +381,8 @@ function createRegistry(windowManager) {
         throw new NotFoundError('note', params.id);
       }
 
-      if (windowManager) {
-        windowManager.broadcast('note:created', note);
+      if (resolveWM()) {
+        resolveWM().broadcast('note:created', note);
       }
 
       return { success: true, note };
@@ -366,8 +404,8 @@ function createRegistry(windowManager) {
           throw new NotFoundError('note', params.id);
         }
 
-        if (windowManager) {
-          windowManager.broadcast('note:updated', note);
+        if (resolveWM()) {
+          resolveWM().broadcast('note:updated', note);
         }
 
         return { success: true, note };
@@ -392,8 +430,8 @@ function createRegistry(windowManager) {
           throw new PermissionError('Note not found or wrong password');
         }
 
-        if (windowManager) {
-          windowManager.broadcast('note:updated', note);
+        if (resolveWM()) {
+          resolveWM().broadcast('note:updated', note);
         }
 
         return { success: true, note };
@@ -418,8 +456,8 @@ function createRegistry(windowManager) {
 
       const updated = updateNote()(params.id, { is_pinned: 1 });
 
-      if (windowManager) {
-        windowManager.broadcast('note:updated', updated);
+      if (resolveWM()) {
+        resolveWM().broadcast('note:updated', updated);
       }
 
       return { success: true, note: updated };
@@ -441,8 +479,8 @@ function createRegistry(windowManager) {
 
       const updated = updateNote()(params.id, { is_pinned: 0 });
 
-      if (windowManager) {
-        windowManager.broadcast('note:updated', updated);
+      if (resolveWM()) {
+        resolveWM().broadcast('note:updated', updated);
       }
 
       return { success: true, note: updated };
@@ -464,8 +502,8 @@ function createRegistry(windowManager) {
 
       const updated = updateNote()(params.id, { is_archived: 0, archived_at: null });
 
-      if (windowManager) {
-        windowManager.broadcast('note:updated', updated);
+      if (resolveWM()) {
+        resolveWM().broadcast('note:updated', updated);
       }
 
       return { success: true, note: updated };
@@ -483,6 +521,11 @@ function createRegistry(windowManager) {
       const note = getNoteById()(params.id);
       if (!note) {
         throw new NotFoundError('note', params.id);
+      }
+
+      // Do not expose version history for a locked note (see history:get).
+      if (note.is_locked) {
+        return { success: true, history: [] };
       }
 
       try {
@@ -512,8 +555,8 @@ function createRegistry(windowManager) {
           const success = deleteNote()(id, permanent);
           results.push({ id, success });
 
-          if (success && windowManager) {
-            windowManager.broadcast('note:deleted', id);
+          if (success && resolveWM()) {
+            resolveWM().broadcast('note:deleted', id);
           }
         } catch (err) {
           results.push({ id, success: false, error: err.message });
@@ -539,8 +582,8 @@ function createRegistry(windowManager) {
           const note = archiveNote()(id);
           results.push({ id, success: !!note });
 
-          if (note && windowManager) {
-            windowManager.broadcast('note:updated', note);
+          if (note && resolveWM()) {
+            resolveWM().broadcast('note:updated', note);
           }
         } catch (err) {
           results.push({ id, success: false, error: err.message });
@@ -550,6 +593,86 @@ function createRegistry(windowManager) {
       return { success: true, results };
     },
     { description: 'Archive multiple notes at once' }
+  );
+
+  registry.register(
+    'note:permanentDelete',
+    async (params) => {
+      if (!params || !params.id) {
+        throw new ValidationError('Note ID is required');
+      }
+      const success = permanentlyDeleteNote()(params.id);
+      if (success && resolveWM()) {
+        resolveWM().broadcast('note:deleted', params.id);
+      }
+      return { success };
+    },
+    { description: 'Permanently delete a note (irreversible)' }
+  );
+
+  registry.register(
+    'note:trashStats',
+    async () => {
+      const trashed = getNotes()({ trashedOnly: true });
+      return { count: trashed.length };
+    },
+    { description: 'Get trash statistics' }
+  );
+
+  registry.register(
+    'note:purgeTrash',
+    async () => {
+      const trashed = getNotes()({ trashedOnly: true });
+      let deleted = 0;
+      for (const note of trashed) {
+        permanentlyDeleteNote()(note.id);
+        deleted++;
+      }
+      const orphanedTagsDeleted = cleanupOrphanedTags()();
+      if (resolveWM()) {
+        resolveWM().broadcast('notes:trashPurged', { count: deleted, orphanedTagsDeleted });
+      }
+      return { success: true, deleted, orphanedTagsDeleted };
+    },
+    { description: 'Permanently delete all trashed notes' }
+  );
+
+  registry.register(
+    'note:verifyPassword',
+    async (params) => {
+      if (!params || !params.id) {
+        throw new ValidationError('Note ID is required');
+      }
+      const note = getNoteById()(params.id);
+      if (!note) {
+        return { exists: false, requiresPassword: false, valid: false };
+      }
+      if (!note.password_hash) {
+        return { exists: true, requiresPassword: false, valid: true };
+      }
+      const valid = verifyPasswordSync()(params.password || '', note.password_hash);
+      return { exists: true, requiresPassword: true, valid };
+    },
+    { description: 'Verify a note password without unlocking' }
+  );
+
+  registry.register(
+    'note:revert',
+    async (params) => {
+      if (!params || !params.id || !params.historyId) {
+        throw new ValidationError('Note ID and history ID are required');
+      }
+      const entry = revertToVersion()(params.id, params.historyId);
+      if (!entry) {
+        throw new NotFoundError('history entry', params.historyId);
+      }
+      const note = getNoteById()(params.id);
+      if (resolveWM()) {
+        resolveWM().broadcast('note:updated', note);
+      }
+      return { success: true, note };
+    },
+    { description: 'Revert a note to a previous version' }
   );
 
   // ============================================================================
@@ -627,6 +750,51 @@ function createRegistry(windowManager) {
     { description: 'Set all tags for a note (replaces existing)' }
   );
 
+  registry.register(
+    'tag:delete',
+    async (params) => {
+      const name = params && (params.name || params.tag);
+      if (!name) {
+        throw new ValidationError('Tag name is required');
+      }
+      const success = deleteTagByName()(name);
+      return { success };
+    },
+    { description: 'Delete a tag globally by name' }
+  );
+
+  registry.register(
+    'tag:rename',
+    async (params) => {
+      if (!params || !params.oldName || !params.newName) {
+        throw new ValidationError('Old and new tag names are required');
+      }
+      const success = renameTag()(params.oldName, params.newName);
+      return { success };
+    },
+    { description: 'Rename a tag globally' }
+  );
+
+  registry.register(
+    'tag:getForNotes',
+    async (params) => {
+      if (!params || !Array.isArray(params.noteIds)) {
+        throw new ValidationError('noteIds array is required');
+      }
+      return getTagsForNotes()(params.noteIds);
+    },
+    { description: 'Get tags for multiple notes' }
+  );
+
+  registry.register(
+    'tag:cleanupOrphaned',
+    async () => {
+      const deleted = cleanupOrphanedTags()();
+      return { success: true, deleted };
+    },
+    { description: 'Delete tags no longer attached to any note' }
+  );
+
   // ============================================================================
   // FOLDER OPERATIONS
   // ============================================================================
@@ -701,6 +869,14 @@ function createRegistry(windowManager) {
   );
 
   registry.register(
+    'folder:tree',
+    async () => {
+      return getFolderTree()();
+    },
+    { description: 'Get the folder tree' }
+  );
+
+  registry.register(
     'folder:moveNote',
     async (params) => {
       if (!params || !params.noteId) {
@@ -722,6 +898,47 @@ function createRegistry(windowManager) {
       return { success };
     },
     { description: 'Move a note to a folder' }
+  );
+
+  // ============================================================================
+  // LINK OPERATIONS
+  // ============================================================================
+
+  registry.register(
+    'links:getOutgoing',
+    async (params) => {
+      if (!params || !params.noteId) {
+        throw new ValidationError('Note ID is required');
+      }
+      return getOutgoingLinks()(params.noteId);
+    },
+    { description: 'Get outgoing [[wiki links]] for a note' }
+  );
+
+  registry.register(
+    'links:getBacklinks',
+    async (params) => {
+      if (!params || !params.noteId) {
+        throw new ValidationError('Note ID is required');
+      }
+      return getBacklinks()(params.noteId);
+    },
+    { description: 'Get notes that link to this note' }
+  );
+
+  registry.register(
+    'links:createFromLink',
+    async (params) => {
+      if (!params || !params.title) {
+        throw new ValidationError('Title is required');
+      }
+      const note = createNoteFromLink()(params.title, params.sourceNoteId || null);
+      if (note && resolveWM()) {
+        resolveWM().broadcast('note:created', note);
+      }
+      return { success: true, note };
+    },
+    { description: 'Create a note from an unresolved [[wiki link]]' }
   );
 
   // ============================================================================
@@ -812,11 +1029,11 @@ function createRegistry(windowManager) {
   registry.register(
     'app:show',
     async (_params) => {
-      if (!windowManager) {
+      if (!resolveWM()) {
         throw new ServiceUnavailableError('Window manager not available');
       }
 
-      windowManager.showPanel();
+      resolveWM().showPanel();
       return { success: true };
     },
     { description: 'Show the main application window' }
@@ -825,11 +1042,11 @@ function createRegistry(windowManager) {
   registry.register(
     'app:hide',
     async (_params) => {
-      if (!windowManager) {
+      if (!resolveWM()) {
         throw new ServiceUnavailableError('Window manager not available');
       }
 
-      windowManager.hidePanel();
+      resolveWM().hidePanel();
       return { success: true };
     },
     { description: 'Hide the main application window' }
@@ -857,17 +1074,17 @@ function createRegistry(windowManager) {
   registry.register(
     'app:settings',
     async (_params) => {
-      if (!windowManager) {
+      if (!resolveWM()) {
         throw new ServiceUnavailableError('Window manager not available');
       }
 
-      if (typeof windowManager.showSettings === 'function') {
-        windowManager.showSettings();
+      if (typeof resolveWM().showSettings === 'function') {
+        resolveWM().showSettings();
       } else {
         // Fallback: show panel and broadcast settings event
-        windowManager.showPanel();
-        if (typeof windowManager.broadcast === 'function') {
-          windowManager.broadcast('app:openSettings');
+        resolveWM().showPanel();
+        if (typeof resolveWM().broadcast === 'function') {
+          resolveWM().broadcast('app:openSettings');
         }
       }
 
@@ -879,11 +1096,11 @@ function createRegistry(windowManager) {
   registry.register(
     'app:panel',
     async (_params) => {
-      if (!windowManager) {
+      if (!resolveWM()) {
         throw new ServiceUnavailableError('Window manager not available');
       }
 
-      windowManager.showPanel();
+      resolveWM().showPanel();
       return { success: true };
     },
     { description: 'Show the main panel window' }
@@ -941,7 +1158,7 @@ function createRegistry(windowManager) {
   registry.register(
     'app:status',
     async (_params) => {
-      const { getDatabase, getDatabasePath } = require('../../shared/database');
+      const { getDatabase, getCurrentPath } = require('../../shared/database');
       const { getConfig } = require('../../shared/config');
 
       try {
@@ -972,8 +1189,8 @@ function createRegistry(windowManager) {
 
         // Get pipe server status
         let pipeStatus = { running: true, connections: 0 };
-        if (windowManager && typeof windowManager.getPipeServer === 'function') {
-          const pipeServer = windowManager.getPipeServer();
+        if (resolveWM() && typeof resolveWM().getPipeServer === 'function') {
+          const pipeServer = resolveWM().getPipeServer();
           if (pipeServer && typeof pipeServer.getStatus === 'function') {
             pipeStatus = pipeServer.getStatus();
             pipeStatus.running = true;
@@ -996,7 +1213,7 @@ function createRegistry(windowManager) {
           },
           database: {
             connected: true,
-            path: getDatabasePath(),
+            path: getCurrentPath(),
             notes: noteCount,
             tags: tagCount,
             folders: folderCount,
@@ -1008,8 +1225,8 @@ function createRegistry(windowManager) {
           },
           pipeServer: pipeStatus,
           windows: {
-            panel: windowManager?.panelWindow ? !windowManager.panelWindow.isDestroyed() : false,
-            notes: windowManager?.noteWindows?.size || 0,
+            panel: resolveWM()?.panelWindow ? !resolveWM().panelWindow.isDestroyed() : false,
+            notes: resolveWM()?.noteWindows?.size || 0,
           },
         };
       } catch (err) {

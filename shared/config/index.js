@@ -56,9 +56,9 @@ function initConfig() {
     fs.writeFileSync(configPath, defaultConfig, 'utf8');
 
     // Run migration from SQLite if needed
-    const { migrateFromSQLite } = require('./migration');
+    const { migrateToYaml } = require('./migration');
     try {
-      migrateFromSQLite(configPath);
+      migrateToYaml(configPath);
     } catch (error) {
       console.error('Config migration failed:', error.message);
       // Continue with defaults if migration fails

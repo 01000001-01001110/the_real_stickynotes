@@ -119,10 +119,22 @@ function handleSettingChange(key, value) {
 function updateAutoLaunch(enabled) {
   const { app } = require('electron');
 
-  app.setLoginItemSettings({
+  const settings = {
     openAtLogin: enabled,
     path: app.getPath('exe'),
-  });
+  };
+
+  // On Windows, also write StartupApproved\Run key so Task Manager
+  // doesn't override our setting. The `enabled` field is supported on
+  // Electron 28+ (which this project targets via ^28.2.0).
+  if (process.platform === 'win32') {
+    settings.enabled = enabled;
+  }
+
+  app.setLoginItemSettings(settings);
+
+  const result = app.getLoginItemSettings();
+  console.log('[Settings] Auto-launch updated:', enabled, '| OS enabled:', result.enabled ?? 'n/a');
 }
 
 /**

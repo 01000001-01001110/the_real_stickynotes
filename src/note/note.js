@@ -78,6 +78,8 @@ const lockedOverlay = document.getElementById('lockedOverlay');
 const passwordInput = document.getElementById('passwordInput');
 const unlockBtn = document.getElementById('unlockBtn');
 const editorToolbar = document.getElementById('editorToolbar');
+const opacitySlider = document.getElementById('opacitySlider');
+const opacityLabel = document.getElementById('opacityLabel');
 
 // Dialog elements
 const tagsDialog = document.getElementById('tagsDialog');
@@ -198,8 +200,8 @@ async function loadNote() {
   } else {
     // Set content - render [[wiki links]] as clickable anchors
     const renderedContent = await api.renderLinks(note.content || '');
-    noteEditor.innerHTML = renderedContent;
-    lastSavedContent = renderedContent;
+    noteEditor.innerHTML = sanitizeHtml(renderedContent);
+    lastSavedContent = noteEditor.innerHTML;
   }
 
   // Set pinned state
@@ -208,6 +210,16 @@ async function loadNote() {
 
   // Update word count
   updateWordCount();
+
+  // Initialize opacity slider with per-note value or global fallback
+  if (opacitySlider) {
+    const globalOpacity = await api.getSetting('appearance.noteOpacity');
+    const noteOpacity =
+      note.opacity !== null && note.opacity !== undefined ? note.opacity : (globalOpacity ?? 100);
+    opacitySlider.value = noteOpacity;
+    if (opacityLabel) opacityLabel.textContent = `${Math.round(noteOpacity)}%`;
+    updateOpacityGradient(noteOpacity);
+  }
 }
 
 /**
@@ -517,6 +529,54 @@ function setupEventListeners() {
   // Keyboard shortcuts
   document.addEventListener('keydown', handleKeydown);
 
+  // Opacity button + slider (inside context menu — stopPropagation keeps menu open)
+  const opacityMenuBtn = document.getElementById('opacityMenuBtn');
+  const opacitySliderWrap = document.getElementById('opacitySliderWrap');
+  if (opacityMenuBtn && opacitySliderWrap) {
+    opacityMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      opacitySliderWrap.hidden = !opacitySliderWrap.hidden;
+    });
+    opacitySliderWrap.addEventListener('click', (e) => e.stopPropagation());
+    opacitySliderWrap.addEventListener('mousedown', (e) => e.stopPropagation());
+  }
+
+  if (opacitySlider) {
+    let opacityDebounce = null;
+    opacitySlider.addEventListener('input', () => {
+      // Clamp to the persistable range (validator + schema allow 50-100 only).
+      // Below 50 the window would go (near-)invisible AND the save would fail
+      // validation, so the on-screen value and the stored value would diverge.
+      const value = Math.max(50, Math.min(100, parseInt(opacitySlider.value, 10) || 100));
+      opacitySlider.value = value;
+      if (opacityLabel) opacityLabel.textContent = `${value}%`;
+      updateOpacityGradient(value);
+      api.setWindowOpacity(value / 100);
+      clearTimeout(opacityDebounce);
+      opacityDebounce = setTimeout(async () => {
+        const result = await api.updateNote(noteId, { opacity: value });
+        if (result && result.success === false) {
+          console.error('[Note] Failed to persist opacity:', result.error);
+          return;
+        }
+        note.opacity = value;
+      }, 300);
+    });
+  }
+
+  // Ctrl+RShift+X resets note opacity to global default
+  let rightShiftDown = false;
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'ShiftRight') rightShiftDown = true;
+    if (e.ctrlKey && rightShiftDown && e.code === 'KeyX' && !e.altKey) {
+      e.preventDefault();
+      resetNoteOpacity();
+    }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'ShiftRight') rightShiftDown = false;
+  });
+
   // Unlock button
   unlockBtn.addEventListener('click', attemptUnlock);
   passwordInput.addEventListener('keydown', (e) => {
@@ -567,8 +627,8 @@ function setupEventListeners() {
       if (noteEditor.innerHTML === lastSavedContent) {
         // Render [[wiki links]] as clickable anchors
         const renderedContent = await api.renderLinks(updatedNote.content || '');
-        noteEditor.innerHTML = renderedContent;
-        lastSavedContent = renderedContent;
+        noteEditor.innerHTML = sanitizeHtml(renderedContent);
+        lastSavedContent = noteEditor.innerHTML;
       }
       if (titleInput.value === lastSavedTitle) {
         titleInput.value = updatedNote.title || '';
@@ -607,6 +667,32 @@ function handleKeydown(e) {
     colorPicker.hidden = true;
     contextMenu.hidden = true;
   }
+}
+
+/**
+ * Update the opacity slider gradient to match current value (0–100).
+ * White fills left of thumb (opaque), dark fills right (transparent).
+ * At value=0: entire track dark. At value=100: entire track white.
+ */
+function updateOpacityGradient(value) {
+  if (!opacitySlider) return;
+  const pct = value;
+  opacitySlider.style.background = `linear-gradient(to right, #f0f0f0 0%, #f0f0f0 ${pct}%, #1a1a1a ${pct}%, #1a1a1a 100%)`;
+}
+
+/**
+ * Reset note opacity to the global default setting.
+ */
+async function resetNoteOpacity() {
+  if (!opacitySlider) return;
+  const globalOpacity = await api.getSetting('appearance.noteOpacity');
+  const defaultVal = globalOpacity ?? 100;
+  opacitySlider.value = defaultVal;
+  if (opacityLabel) opacityLabel.textContent = `${Math.round(defaultVal)}%`;
+  updateOpacityGradient(defaultVal);
+  api.setWindowOpacity(defaultVal / 100);
+  await api.updateNote(noteId, { opacity: null });
+  note.opacity = null;
 }
 
 /**
@@ -655,40 +741,40 @@ function applyFormat(format) {
     case 'codeblock':
       insertCodeBlock();
       break;
+    case 'ordered-list':
+      document.execCommand('insertOrderedList', false, null);
+      break;
+    case 'font-size-increase':
+      changeFontSize(1);
+      break;
+    case 'font-size-decrease':
+      changeFontSize(-1);
+      break;
+    case 'clear-formatting':
+      document.execCommand('removeFormat', false, null);
+      break;
+    case 'obfuscate':
+      toggleObfuscation();
+      return;
   }
   scheduleAutoSave();
 }
 
 /**
- * Insert or toggle bullet list
+ * Change font size relative to current selection.
+ * execCommand('fontSize') uses sizes 1-7; treat 0 (mixed) as 3 (medium).
+ */
+function changeFontSize(delta) {
+  const current = parseInt(document.queryCommandValue('fontSize'), 10) || 3;
+  const next = Math.max(1, Math.min(7, current + delta));
+  document.execCommand('fontSize', false, String(next));
+}
+
+/**
+ * Insert or toggle unordered bullet list
  */
 function insertBulletList() {
-  const selection = window.getSelection();
-  if (selection.rangeCount === 0) return;
-
-  // Check if we're already in a list
-  let container = selection.getRangeAt(0).startContainer;
-  let inList = false;
-
-  while (container && container !== noteEditor) {
-    if (container.nodeName === 'UL' || container.nodeName === 'OL') {
-      inList = true;
-      break;
-    }
-    if (container.nodeName === 'LI') {
-      inList = true;
-      break;
-    }
-    container = container.parentNode;
-  }
-
-  if (inList) {
-    // Toggle off the list
-    document.execCommand('insertUnorderedList', false, null);
-  } else {
-    // Create a new list
-    document.execCommand('insertUnorderedList', false, null);
-  }
+  document.execCommand('insertUnorderedList', false, null);
 }
 
 /**
@@ -884,7 +970,7 @@ function handlePaste(e) {
       e.preventDefault();
 
       // Clean the HTML but preserve links
-      const cleanHtml = sanitizePastedHtml(htmlData);
+      const cleanHtml = sanitizeHtml(htmlData);
       document.execCommand('insertHTML', false, cleanHtml);
       scheduleAutoSave();
       return;
@@ -914,7 +1000,8 @@ function handlePaste(e) {
 /**
  * Sanitize pasted HTML while preserving safe elements like links
  */
-function sanitizePastedHtml(html) {
+function sanitizeHtml(html) {
+  if (html == null) return '';
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
 
@@ -1206,6 +1293,12 @@ function updateToolbarState() {
           }
         }
         break;
+      case 'bullet':
+        isActive = document.queryCommandState('insertUnorderedList');
+        break;
+      case 'ordered-list':
+        isActive = document.queryCommandState('insertOrderedList');
+        break;
     }
 
     btn.classList.toggle('active', isActive);
@@ -1353,6 +1446,20 @@ async function handleMenuAction(action) {
       break;
     }
 
+    case 'paste-plain-text': {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          noteEditor.focus();
+          document.execCommand('insertText', false, text);
+          scheduleAutoSave();
+        }
+      } catch (err) {
+        console.error('[Note] Paste as plain text failed:', err);
+      }
+      break;
+    }
+
     case 'copy-markdown':
       await copyToClipboard('markdown');
       break;
@@ -1361,6 +1468,105 @@ async function handleMenuAction(action) {
       await copyToClipboard('html');
       break;
   }
+}
+
+/**
+ * Generate a thread-texture SVG for the obfuscation overlay.
+ * Uses 170 cubic bezier paths in natural thread colors.
+ */
+function generateThreadSVG(W, H) {
+  const threadColors = [
+    [205, 190, 160], // warm tan
+    [225, 210, 180], // cream
+    [180, 160, 130], // warm brown
+    [150, 140, 120], // taupe
+    [215, 200, 165], // light warm
+    [90, 120, 155], // dusty blue
+    [155, 90, 90], // rust red
+    [130, 155, 120], // sage green
+    [200, 175, 145], // sand
+    [170, 165, 150], // warm gray
+  ];
+
+  const paths = [];
+  // Scale thread count with area so small selections still look dense
+  const count = Math.max(60, Math.min(220, Math.round((W * H) / 40)));
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+
+    // Perpendicular offset from center — spreads threads across the area
+    const perp = (Math.random() - 0.5) * (W + H) * 0.65;
+    const cx = W / 2 + perp * -sin;
+    const cy = H / 2 + perp * cos;
+
+    const diag = Math.sqrt(W * W + H * H) * 0.75;
+    const x1 = cx - cos * diag;
+    const y1 = cy - sin * diag;
+    const x2 = cx + cos * diag;
+    const y2 = cy + sin * diag;
+
+    // Two control points with perpendicular wobble for organic curvature
+    const amp = (Math.random() * 0.5 + 0.05) * Math.min(W, H) * 0.3;
+    const w1 = (Math.random() - 0.5) * 2 * amp;
+    const w2 = (Math.random() - 0.5) * 2 * amp;
+    const cp1x = x1 + (x2 - x1) * 0.33 + -sin * w1;
+    const cp1y = y1 + (y2 - y1) * 0.33 + cos * w1;
+    const cp2x = x1 + (x2 - x1) * 0.67 + -sin * w2;
+    const cp2y = y1 + (y2 - y1) * 0.67 + cos * w2;
+
+    const opacity = (0.2 + Math.random() * 0.6).toFixed(2);
+    const [r, g, b] = threadColors[Math.floor(Math.random() * threadColors.length)];
+    const sw = (0.3 + Math.random() * 1.1).toFixed(1);
+
+    paths.push(
+      `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" stroke="rgba(${r},${g},${b},${opacity})" stroke-width="${sw}" fill="none"/>`
+    );
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${paths.join('')}</svg>`;
+}
+
+/**
+ * Obfuscate the current text selection with a thread overlay.
+ * Multiple overlays can coexist; clicking an overlay removes only that one.
+ */
+function toggleObfuscation() {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+
+  const range = selection.getRangeAt(0);
+  const selRect = range.getBoundingClientRect();
+  if (!selRect.width || !selRect.height) return;
+
+  const noteContent = document.querySelector('.note-content');
+  const contentRect = noteContent.getBoundingClientRect();
+
+  const pad = 3;
+  const top = selRect.top - contentRect.top - pad;
+  const left = selRect.left - contentRect.left - pad;
+  const w = Math.round(selRect.width + pad * 2);
+  const h = Math.round(selRect.height + pad * 2);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'thread-overlay';
+  Object.assign(overlay.style, {
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${w}px`,
+    height: `${h}px`,
+    borderRadius: '3px',
+  });
+
+  overlay.innerHTML =
+    generateThreadSVG(w, h) + (h > 40 ? '<span class="thread-hint">click to reveal</span>' : '');
+  overlay.addEventListener('click', () => {
+    overlay.classList.add('hiding');
+    overlay.addEventListener('animationend', () => overlay.remove(), { once: true });
+  });
+  noteContent.appendChild(overlay);
 }
 
 /**
@@ -1542,9 +1748,9 @@ async function restoreVersion(historyId) {
 
   const entry = await api.revertToVersion(noteId, historyId);
   if (entry) {
-    noteEditor.innerHTML = entry.content || '';
+    noteEditor.innerHTML = sanitizeHtml(entry.content || '');
     titleInput.value = entry.title || '';
-    lastSavedContent = entry.content || '';
+    lastSavedContent = noteEditor.innerHTML;
     lastSavedTitle = entry.title || '';
     historyDialog.hidden = true;
   }
@@ -1579,8 +1785,8 @@ async function attemptUnlock() {
     lockedOverlay.hidden = true;
     // Render [[wiki links]] as clickable anchors
     const renderedContent = await api.renderLinks(note.content || '');
-    noteEditor.innerHTML = renderedContent;
-    lastSavedContent = renderedContent;
+    noteEditor.innerHTML = sanitizeHtml(renderedContent);
+    lastSavedContent = noteEditor.innerHTML;
     noteEditor.focus();
   } else {
     passwordInput.classList.add('animate-shake');

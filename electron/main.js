@@ -42,6 +42,10 @@ let windowManager = null;
 let cliMode = false;
 let cliParsed = null;
 
+// Stores object shared with the pipe server. windowManager is injected in Phase 3,
+// after the pipe server has already started in Phase 2 — the registry resolves it lazily.
+let pipeStores = null;
+
 // Use a getter/setter pattern for isQuitting to avoid primitive copy issues
 const appState = {
   _isQuitting: false,
@@ -233,12 +237,12 @@ async function createApp() {
 
     // Initialize pipe server (for CLI communication)
     try {
-      await initPipeServer({
-        // Pass required stores for pipe methods
-        // windowManager will be null initially, pipe methods must handle this
-        windowManager: null, // Will be set after Phase 3
+      pipeStores = {
+        // windowManager is injected after Phase 3 below; the registry resolves it lazily.
+        windowManager: null,
         getSetting,
-      });
+      };
+      await initPipeServer(pipeStores);
       debugLog('[Phase 2] Pipe server initialized');
     } catch (error) {
       // Non-fatal: app can run without pipe server (CLI just won't work)
@@ -253,6 +257,13 @@ async function createApp() {
     // Create window manager
     windowManager = new WindowManager();
     debugLog('Window manager created');
+
+    // Inject the now-created window manager into the pipe server's stores so
+    // pipe-driven note broadcasts and app:* control methods work (Phase 2 started
+    // the server with a null windowManager).
+    if (pipeStores) {
+      pipeStores.windowManager = windowManager;
+    }
 
     // Setup IPC handlers
     setupIpcHandlers(windowManager);

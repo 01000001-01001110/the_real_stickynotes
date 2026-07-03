@@ -84,6 +84,9 @@ class PipeClient extends EventEmitter {
       try {
         await this._attemptConnection();
         this.connected = true;
+        // The pipe server requires an auth handshake as the first frame. Present
+        // the per-user token; the server rejects all other methods until it matches.
+        await this._authenticate();
         this.emit('connected');
         return;
       } catch (error) {
@@ -103,6 +106,23 @@ class PipeClient extends EventEmitter {
       originalError: lastError?.message,
       attempts: this.retries + 1,
     });
+  }
+
+  /**
+   * Present the auth token as the first frame. Throws if the server rejects it.
+   * @private
+   * @returns {Promise<void>}
+   */
+  async _authenticate() {
+    let token = '';
+    try {
+      // pipe-auth resolves the token path via the same app-data logic the server
+      // uses; require lazily so a missing token file never breaks construction.
+      token = require('../../electron/ipc/pipe-auth').readToken() || '';
+    } catch (err) {
+      token = '';
+    }
+    await this.request('auth', { token });
   }
 
   /**

@@ -33,7 +33,23 @@ function mapCommand(parsed) {
   }
 
   // Build method name: command:action
-  const method = `${command}:${action}`;
+  let method = `${command}:${action}`;
+
+  // Friendly CLI verbs that map to a differently-named registry method.
+  const METHOD_OVERRIDES = {
+    'note:purge': 'note:purgeTrash',
+    'note:verify': 'note:verifyPassword',
+    'note:trashstats': 'note:trashStats',
+    'folder:list-tree': 'folder:tree',
+  };
+  if (METHOD_OVERRIDES[method]) {
+    method = METHOD_OVERRIDES[method];
+  }
+
+  // `note delete <id> --force` / `--permanent` is a permanent delete.
+  if (command === 'note' && action === 'delete' && (options.force || options.permanent)) {
+    method = 'note:permanentDelete';
+  }
 
   // Build params based on command type
   const params = buildParams(command, action, args, options);
@@ -188,6 +204,32 @@ function buildNoteParams(action, args, params) {
         limit: params.limit || 10,
         ...params,
       };
+
+    case 'revert':
+      // stickynotes note revert <id> <historyId>
+      if (args.length < 2) {
+        throw new Error('note revert requires note ID and history ID');
+      }
+      return {
+        id: args[0],
+        historyId: args[1],
+        ...params,
+      };
+
+    case 'verify':
+      // stickynotes note verify <id> --password PW
+      if (args.length === 0) {
+        throw new Error('Missing note ID for verify');
+      }
+      return {
+        id: args[0],
+        password: params.password || args[1] || '',
+        ...params,
+      };
+
+    case 'purge':
+      // stickynotes note purge  (permanently delete all trashed notes)
+      return params;
 
     case 'bulkDelete':
       // stickynotes note bulkDelete <id1> <id2> ... [--permanent]
