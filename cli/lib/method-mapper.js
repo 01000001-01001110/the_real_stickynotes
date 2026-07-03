@@ -41,6 +41,13 @@ function mapCommand(parsed) {
     'note:verify': 'note:verifyPassword',
     'note:trashstats': 'note:trashStats',
     'folder:list-tree': 'folder:tree',
+    'config:get-multiple': 'config:getMultiple',
+    'config:default-paths': 'config:defaultPaths',
+    'app:open': 'app:openNote',
+    'app:close': 'app:closeNote',
+    'app:showall': 'app:showAll',
+    'app:hideall': 'app:hideAll',
+    'attachment:path': 'attachment:getPath',
   };
   if (METHOD_OVERRIDES[method]) {
     method = METHOD_OVERRIDES[method];
@@ -97,6 +104,9 @@ function buildParams(command, action, args, options) {
 
     case 'app':
       return buildAppParams(action, args, params);
+
+    case 'attachment':
+      return buildAttachmentParams(action, args, params);
 
     case 'service':
       return buildServiceParams(action, args, params);
@@ -422,6 +432,30 @@ function buildConfigParams(action, args, params) {
       // stickynotes config edit (opens in editor)
       return params;
 
+    case 'reset':
+      // stickynotes config reset <key>
+      if (args.length === 0) {
+        throw new Error('Missing config key for reset');
+      }
+      return {
+        key: args[0],
+        ...params,
+      };
+
+    case 'get-multiple':
+      // stickynotes config get-multiple <key1> <key2> ...
+      if (args.length === 0) {
+        throw new Error('config get-multiple requires at least one key');
+      }
+      return {
+        keys: args,
+        ...params,
+      };
+
+    case 'default-paths':
+      // stickynotes config default-paths
+      return params;
+
     default:
       return params;
   }
@@ -498,8 +532,60 @@ function buildAppParams(action, args, params) {
     case 'settings':
     case 'status':
     case 'version':
+    case 'showall':
+    case 'hideall':
       // No additional params needed
       return params;
+
+    case 'open':
+    case 'close':
+      // stickynotes app open|close <note-id>
+      if (args.length === 0) {
+        throw new Error(`Missing note ID for app ${action}`);
+      }
+      return {
+        id: args[0],
+        ...params,
+      };
+
+    default:
+      return params;
+  }
+}
+
+/**
+ * Build attachment command parameters
+ * @private
+ */
+function buildAttachmentParams(action, args, params) {
+  switch (action) {
+    case 'list':
+      // stickynotes attachment list <note-id>
+      if (args.length === 0) {
+        throw new Error('Missing note ID for attachment list');
+      }
+      return { noteId: args[0], ...params };
+
+    case 'add':
+      // stickynotes attachment add <note-id> <file-path>
+      if (args.length < 2) {
+        throw new Error('attachment add requires note ID and file path');
+      }
+      return { noteId: args[0], filePath: args[1], ...params };
+
+    case 'delete':
+      // stickynotes attachment delete <attachment-id>
+      if (args.length === 0) {
+        throw new Error('Missing attachment ID for delete');
+      }
+      return { id: args[0], ...params };
+
+    case 'path':
+      // stickynotes attachment path <attachment-id>
+      if (args.length === 0) {
+        throw new Error('Missing attachment ID');
+      }
+      return { id: args[0], ...params };
 
     default:
       return params;

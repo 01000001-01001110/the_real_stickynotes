@@ -49,4 +49,57 @@ describe('CLI parity verb mapping', () => {
   it('folder tree -> folder:tree', () => {
     expect(map('folder', 'tree').method).toBe('folder:tree');
   });
+
+  // ---- tranche 2 ----
+
+  it('config reset <key> -> config:reset', () => {
+    const r = map('config', 'reset', ['a.b']);
+    expect(r.method).toBe('config:reset');
+    expect(r.params).toMatchObject({ key: 'a.b' });
+  });
+
+  it('config get-multiple k1 k2 -> config:getMultiple', () => {
+    const r = map('config', 'get-multiple', ['a.b', 'c.d']);
+    expect(r.method).toBe('config:getMultiple');
+    expect(r.params).toMatchObject({ keys: ['a.b', 'c.d'] });
+  });
+
+  it('config default-paths -> config:defaultPaths', () => {
+    expect(map('config', 'default-paths').method).toBe('config:defaultPaths');
+  });
+
+  it('app open/close <id> -> app:openNote/closeNote', () => {
+    expect(map('app', 'open', ['n1'])).toMatchObject({
+      method: 'app:openNote',
+      params: { id: 'n1' },
+    });
+    expect(map('app', 'close', ['n1'])).toMatchObject({
+      method: 'app:closeNote',
+      params: { id: 'n1' },
+    });
+  });
+
+  it('app showall/hideall -> app:showAll/hideAll', () => {
+    expect(map('app', 'showall').method).toBe('app:showAll');
+    expect(map('app', 'hideall').method).toBe('app:hideAll');
+  });
+
+  it('attachment verbs map correctly', () => {
+    expect(map('attachment', 'list', ['n1'])).toMatchObject({
+      method: 'attachment:list',
+      params: { noteId: 'n1' },
+    });
+    expect(map('attachment', 'add', ['n1', '/f.png'])).toMatchObject({
+      method: 'attachment:add',
+      params: { noteId: 'n1', filePath: '/f.png' },
+    });
+    expect(map('attachment', 'delete', ['a1'])).toMatchObject({
+      method: 'attachment:delete',
+      params: { id: 'a1' },
+    });
+    expect(map('attachment', 'path', ['a1'])).toMatchObject({
+      method: 'attachment:getPath',
+      params: { id: 'a1' },
+    });
+  });
 });

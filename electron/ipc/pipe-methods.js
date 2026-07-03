@@ -172,6 +172,13 @@ function createRegistry(stores) {
   const getSetting = () => require('../../shared/database/settings').getSetting;
   const setSetting = () => require('../../shared/database/settings').setSetting;
   const getAllSettings = () => require('../../shared/database/settings').getAllSettings;
+  const resetSetting = () => require('../../shared/database/settings').resetSetting;
+
+  const getAttachmentsForNote = () =>
+    require('../../shared/database/attachments').getAttachmentsForNote;
+  const saveAttachment = () => require('../../shared/database/attachments').saveAttachment;
+  const deleteAttachment = () => require('../../shared/database/attachments').deleteAttachment;
+  const getAttachmentPath = () => require('../../shared/database/attachments').getAttachmentPath;
 
   const validateNote = () => require('../../shared/utils/validators').validateNote;
   const isValidNoteId = () => require('../../shared/utils/validators').isValidNoteId;
@@ -1022,6 +1029,51 @@ function createRegistry(stores) {
     { description: 'List all configuration values' }
   );
 
+  registry.register(
+    'config:getMultiple',
+    async (params) => {
+      if (!params || !Array.isArray(params.keys)) {
+        throw new ValidationError('keys array is required');
+      }
+      const get = getSetting();
+      const result = {};
+      for (const key of params.keys) {
+        result[key] = get(key);
+      }
+      return result;
+    },
+    { description: 'Get multiple configuration values at once' }
+  );
+
+  registry.register(
+    'config:reset',
+    async (params) => {
+      if (!params || !params.key) {
+        throw new ValidationError('Config key is required');
+      }
+      try {
+        const value = resetSetting()(params.key);
+        return { success: true, key: params.key, value };
+      } catch (err) {
+        throw new ConfigError(err.message);
+      }
+    },
+    { description: 'Reset a configuration value to its default' }
+  );
+
+  registry.register(
+    'config:defaultPaths',
+    async () => {
+      const paths = require('../../shared/utils/paths');
+      return {
+        data: paths.getDefaultDataPath(),
+        attachments: paths.getAttachmentsPath(),
+        backups: paths.getBackupsPath(),
+      };
+    },
+    { description: 'Get the default data/attachments/backups paths' }
+  );
+
   // ============================================================================
   // APP CONTROL OPERATIONS
   // ============================================================================
@@ -1104,6 +1156,118 @@ function createRegistry(stores) {
       return { success: true };
     },
     { description: 'Show the main panel window' }
+  );
+
+  registry.register(
+    'app:openNote',
+    async (params) => {
+      if (!params || !params.id) {
+        throw new ValidationError('Note ID is required');
+      }
+      if (!resolveWM()) {
+        throw new ServiceUnavailableError('Window manager not available');
+      }
+      resolveWM().openNote(params.id);
+      return { success: true };
+    },
+    { description: 'Open a note window' }
+  );
+
+  registry.register(
+    'app:closeNote',
+    async (params) => {
+      if (!params || !params.id) {
+        throw new ValidationError('Note ID is required');
+      }
+      if (!resolveWM()) {
+        throw new ServiceUnavailableError('Window manager not available');
+      }
+      resolveWM().closeNote(params.id);
+      return { success: true };
+    },
+    { description: 'Close a note window' }
+  );
+
+  registry.register(
+    'app:showAll',
+    async (_params) => {
+      if (!resolveWM()) {
+        throw new ServiceUnavailableError('Window manager not available');
+      }
+      resolveWM().showAllNotes();
+      return { success: true };
+    },
+    { description: 'Show all note windows' }
+  );
+
+  registry.register(
+    'app:hideAll',
+    async (_params) => {
+      if (!resolveWM()) {
+        throw new ServiceUnavailableError('Window manager not available');
+      }
+      resolveWM().hideAllNotes();
+      return { success: true };
+    },
+    { description: 'Hide all note windows' }
+  );
+
+  // ============================================================================
+  // ATTACHMENT OPERATIONS
+  // ============================================================================
+
+  registry.register(
+    'attachment:list',
+    async (params) => {
+      if (!params || !params.noteId) {
+        throw new ValidationError('Note ID is required');
+      }
+      return getAttachmentsForNote()(params.noteId);
+    },
+    { description: 'List attachments for a note' }
+  );
+
+  registry.register(
+    'attachment:add',
+    async (params) => {
+      if (!params || !params.noteId || !params.filePath) {
+        throw new ValidationError('Note ID and file path are required');
+      }
+      try {
+        const attachment = saveAttachment()(
+          params.noteId,
+          params.filePath,
+          params.filename || null
+        );
+        return { success: true, attachment };
+      } catch (err) {
+        throw new AppError(ERROR_CODES.INTERNAL_ERROR, err.message);
+      }
+    },
+    { description: 'Add an attachment to a note from a file path' }
+  );
+
+  registry.register(
+    'attachment:delete',
+    async (params) => {
+      if (!params || !params.id) {
+        throw new ValidationError('Attachment ID is required');
+      }
+      const success = deleteAttachment()(params.id);
+      return { success };
+    },
+    { description: 'Delete an attachment' }
+  );
+
+  registry.register(
+    'attachment:getPath',
+    async (params) => {
+      if (!params || !params.id) {
+        throw new ValidationError('Attachment ID is required');
+      }
+      return { path: getAttachmentPath()(params.id) };
+    },
+    { description: 'Get the on-disk path of an attachment' }
   );
 
   // ============================================================================

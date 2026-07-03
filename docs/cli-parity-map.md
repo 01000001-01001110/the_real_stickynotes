@@ -510,3 +510,18 @@ Tier-1 gaps CLOSED (pipe method registered in `electron/ipc/pipe-methods.js` + C
 | Create note from link | `links:createFromLink` | (method only) |
 
 STILL OPEN (next tranches): the `export`/`backup`/`restore`/`stats`/`doctor`/`db`/`paths` class (dead code in `electron/cli/commands.js`, no pipe method), attachments (`attachments:*`), storage/migration (`storage:*`), window control (`windows:openNote/closeNote/showAll/hideAll`), settings `getMultiple`/`reset`/`getDefaultPaths`. Not yet live-certified against the running app (deferred to avoid an ABI flip mid-test-run; the new methods dispatch through the same transport already live-certified for `note:list`/`app:status`).
+
+### Tranche-2 CLOSED (2026-07-02)
+
+| Gap | Pipe method | CLI verb |
+|---|---|---|
+| Reset a setting | `config:reset` | `config reset <key>` |
+| Get multiple settings | `config:getMultiple` | `config get-multiple <k>...` |
+| Get default paths | `config:defaultPaths` | `config default-paths` |
+| Open note window | `app:openNote` | `app open <id>` |
+| Close note window | `app:closeNote` | `app close <id>` |
+| Show all notes | `app:showAll` | `app showall` |
+| Hide all notes | `app:hideAll` | `app hideall` |
+| Attachments (list/add/delete/path) | `attachment:list/add/delete/getPath` | `attachment list|add|delete|path` |
+
+STILL OPEN: `export`/`backup`/`restore`/`stats`/`doctor`/`db`/`paths` class (in-process `commands.js` has impls but no pipe method), storage/migration (`storage:*`).
