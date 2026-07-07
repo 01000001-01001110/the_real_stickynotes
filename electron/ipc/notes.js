@@ -220,6 +220,12 @@ function register(wm) {
 
   // History handlers
   ipcMain.handle('history:get', (event, noteId) => {
+    // Do not expose version history for a locked note. History is purged on lock,
+    // but this guards against any pre-existing rows and enforces the unlock gate.
+    const note = getNoteById(noteId);
+    if (note && note.is_locked) {
+      return [];
+    }
     return getNoteHistory(noteId);
   });
 

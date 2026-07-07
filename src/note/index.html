@@ -105,7 +105,26 @@
         </svg>
         Archive
       </button>
+      <button class="menu-item" id="opacityMenuBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        Opacity
+        <span class="menu-opacity-value" id="opacityLabel">100%</span>
+      </button>
+      <div class="menu-opacity-slider-wrap" id="opacitySliderWrap" hidden>
+        <input type="range" id="opacitySlider" min="50" max="100" step="1" value="100" class="menu-opacity-slider">
+      </div>
       <div class="menu-separator"></div>
+      <button class="menu-item" data-action="paste-plain-text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+          <path d="M9 12h6M9 16h6"/>
+        </svg>
+        Paste as plain text
+      </button>
       <button class="menu-item" data-action="copy-markdown">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -137,8 +156,7 @@
         <div class="editor-toolbar" id="editorToolbar">
           <button class="toolbar-btn" data-format="bold" title="Bold (Ctrl+B)">
             <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
-              <path d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+              <path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/>
             </svg>
           </button>
           <button class="toolbar-btn" data-format="italic" title="Italic (Ctrl+I)">
@@ -190,6 +208,50 @@
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <polyline points="10 8 6 12 10 16" />
               <polyline points="14 8 18 12 14 16" />
+            </svg>
+          </button>
+          <span class="toolbar-separator"></span>
+          <button class="toolbar-btn" data-format="ordered-list" title="Numbered list">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <rect x="9" y="5" width="12" height="2" rx="1"/>
+              <rect x="9" y="11" width="12" height="2" rx="1"/>
+              <rect x="9" y="17" width="12" height="2" rx="1"/>
+              <text x="2" y="8" font-size="6.5" font-family="monospace" fill="currentColor">1</text>
+              <text x="2" y="14" font-size="6.5" font-family="monospace" fill="currentColor">2</text>
+              <text x="2" y="20" font-size="6.5" font-family="monospace" fill="currentColor">3</text>
+            </svg>
+          </button>
+          <span class="toolbar-separator"></span>
+          <button class="toolbar-btn" data-format="font-size-decrease" title="Decrease font size">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <text x="1" y="16" font-size="13" font-family="serif" font-weight="bold" fill="currentColor">A</text>
+              <text x="14" y="20" font-size="8" font-family="serif" fill="currentColor">A</text>
+              <line x1="15" y1="10" x2="23" y2="10" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="toolbar-btn" data-format="font-size-increase" title="Increase font size">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <text x="1" y="16" font-size="13" font-family="serif" font-weight="bold" fill="currentColor">A</text>
+              <text x="14" y="20" font-size="8" font-family="serif" fill="currentColor">A</text>
+              <line x1="15" y1="7" x2="23" y2="7" stroke="currentColor" stroke-width="2"/>
+              <line x1="19" y1="3" x2="19" y2="11" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <span class="toolbar-separator"></span>
+          <button class="toolbar-btn" data-format="clear-formatting" title="Clear formatting">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 7h16"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12"/>
+              <path d="M9 7V4h6v3"/>
+            </svg>
+          </button>
+          <span class="toolbar-separator"></span>
+          <button class="toolbar-btn" data-format="obfuscate" title="Obfuscate selection">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 5 C5 2 9 8 12 5 C15 2 19 8 22 5"/>
+              <path d="M2 11 C5 8 9 14 12 11 C15 8 19 14 22 11"/>
+              <path d="M2 17 C5 14 9 20 12 17 C15 14 19 20 22 17"/>
             </svg>
           </button>
         </div>

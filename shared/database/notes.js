@@ -218,8 +218,11 @@ function updateNote(id, data) {
     'height',
     'is_open',
     'is_pinned',
-    'is_locked',
-    'password_hash',
+    // NOTE: is_locked / password_hash are deliberately NOT updatable here.
+    // Lock state must only transition through lockNote()/unlockNote(), which
+    // enforce encryption + content_plain scrubbing. Allowing them as generic
+    // field writes let callers forge a "locked" note whose content stays
+    // plaintext, or clear the flag on real ciphertext (corruption).
     'reminder_at',
     'reminder_notified',
     'font_size',
@@ -473,11 +476,18 @@ async function lockNote(id, password) {
 
   db.prepare(
     `
-    UPDATE notes 
+    UPDATE notes
     SET is_locked = 1, password_hash = ?, content = ?, content_plain = '[ENCRYPTED]', updated_at = ?
     WHERE id = ?
   `
   ).run(passwordHash, encryptedContent, now, id);
+
+  // Purge version history: note_history rows hold the FULL PLAINTEXT of every
+  // prior version and are not encrypted. Leaving them would let anyone read the
+  // note's content straight out of the DB file / backups / the history API,
+  // defeating the lock entirely.
+  const { deleteNoteHistory } = require('./history');
+  deleteNoteHistory(id);
 
   return getNoteById(id);
 }
@@ -490,14 +500,20 @@ async function lockNote(id, password) {
  */
 async function unlockNote(id, password) {
   const { verifyPassword, decryptContent } = require('../crypto');
+  const throttle = require('../utils/unlock-throttle');
   const db = getDatabase();
   const existing = getNoteById(id);
   if (!existing || !existing.is_locked) return null;
 
+  // Refuse if this note is in an attempt-lockout window (brute-force guard).
+  throttle.assertNotLockedOut(id);
+
   const isMatch = await verifyPassword(password, existing.password_hash);
   if (!isMatch) {
+    throttle.recordFailure(id);
     throw new Error('Incorrect password');
   }
+  throttle.recordSuccess(id);
 
   const decryptedContent = decryptContent(existing.content, password);
   if (decryptedContent === null) {

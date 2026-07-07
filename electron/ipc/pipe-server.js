@@ -13,6 +13,7 @@ const {
   processRequests,
   serializeMessage,
   createNotification,
+  createResponse,
   ERROR_CODES,
   createError,
 } = require('./pipe-protocol');
@@ -123,6 +124,9 @@ class PipeConnection {
     this.isClosed = false;
     this.createdAt = Date.now();
     this.activeRequests = 0;
+    // Connection starts unauthenticated. Until the client presents a valid
+    // token via the 'auth' method, every other method is rejected.
+    this.authenticated = !server.authRequired;
 
     // Set up idle timeout
     this.resetIdleTimer();
@@ -223,33 +227,83 @@ class PipeConnection {
     // Reset buffer timer for incomplete message tracking
     this.resetBufferTimer();
 
-    // Process complete lines
-    if (lines.length > 0) {
-      const completeData = lines.join('\n') + '\n';
+    if (lines.length === 0) return;
 
-      try {
-        // Increment active request counter
-        this.activeRequests++;
-        this.server.incrementActiveRequests();
-
-        const responses = await processRequests(completeData, this.server.methodRegistry);
-
-        // Send all responses
-        for (const response of responses) {
-          this.send(response);
-        }
-      } catch (err) {
-        console.error(`Error processing request [${this.connectionId}]:`, err);
-        this.send(
-          createError(ERROR_CODES.INTERNAL_ERROR, 'Failed to process request', null, {
-            reason: err.message,
-          })
-        );
-      } finally {
-        // Decrement active request counter
-        this.activeRequests--;
-        this.server.decrementActiveRequests();
+    // While unauthenticated, consume lines one at a time enforcing the auth
+    // handshake. Once authenticated, the remaining lines are dispatched normally.
+    const pending = [];
+    for (const line of lines) {
+      if (this.authenticated) {
+        pending.push(line);
+        continue;
       }
+      if (!line.trim()) continue;
+      this.handleAuthLine(line);
+    }
+
+    if (pending.length === 0) return;
+
+    const completeData = pending.join('\n') + '\n';
+
+    try {
+      // Increment active request counter
+      this.activeRequests++;
+      this.server.incrementActiveRequests();
+
+      const responses = await processRequests(completeData, this.server.methodRegistry);
+
+      // Send all responses
+      for (const response of responses) {
+        this.send(response);
+      }
+    } catch (err) {
+      console.error(`Error processing request [${this.connectionId}]:`, err);
+      this.send(
+        createError(ERROR_CODES.INTERNAL_ERROR, 'Failed to process request', null, {
+          reason: err.message,
+        })
+      );
+    } finally {
+      // Decrement active request counter
+      this.activeRequests--;
+      this.server.decrementActiveRequests();
+    }
+  }
+
+  /**
+   * Handle a single line while the connection is unauthenticated.
+   * Only the 'auth' method is permitted; any other method is rejected without
+   * being dispatched. A valid token flips the connection to authenticated.
+   * @param {string} line - One complete NDJSON line
+   */
+  handleAuthLine(line) {
+    let msg;
+    try {
+      msg = JSON.parse(line);
+    } catch (err) {
+      this.send(createError(ERROR_CODES.INVALID_REQUEST, 'Invalid request', null));
+      return;
+    }
+
+    const id = msg && msg.id !== undefined ? msg.id : null;
+
+    if (!msg || msg.method !== 'auth') {
+      this.send(
+        createError(ERROR_CODES.PERMISSION_DENIED, 'Authentication required', id, {
+          hint: "Send the 'auth' method with a valid token before any other request.",
+        })
+      );
+      return;
+    }
+
+    const token = msg.params && msg.params.token;
+    if (this.server.verifyAuth(token)) {
+      this.authenticated = true;
+      this.send(createResponse({ authenticated: true }, id));
+    } else {
+      this.send(createError(ERROR_CODES.PERMISSION_DENIED, 'Invalid authentication token', id));
+      // Drop the connection on a bad token to blunt online brute force.
+      this.close();
     }
   }
 
@@ -343,6 +397,24 @@ class PipeServer extends EventEmitter {
     this.connectionCounter = 0;
     this.activeRequestCount = 0;
     this.isShuttingDown = false;
+    // Auth: every connection must present a valid token before any method runs.
+    this.authRequired = true;
+    this.authToken = null;
+  }
+
+  /**
+   * Verify a candidate auth token (constant-time). When auth is disabled
+   * (tests), always returns true.
+   * @param {string} token
+   * @returns {boolean}
+   */
+  verifyAuth(token) {
+    if (!this.authRequired) return true;
+    if (!this.authToken || typeof token !== 'string' || token.length === 0) return false;
+    const a = Buffer.from(token);
+    const b = Buffer.from(this.authToken);
+    if (a.length !== b.length) return false;
+    return require('crypto').timingSafeEqual(a, b);
   }
 
   /**
@@ -374,15 +446,25 @@ class PipeServer extends EventEmitter {
    * Start the pipe server
    * @param {object} methodRegistry - Map of method names to handler functions
    * @param {string} customPipePath - Optional custom pipe path (for testing)
+   * @param {object} options - { authRequired?: boolean, authToken?: string }
    * @returns {Promise<string>} The pipe path
    */
-  async start(methodRegistry, customPipePath = null) {
+  async start(methodRegistry, customPipePath = null, options = {}) {
     if (this.isRunning) {
       throw new Error('Pipe server is already running');
     }
 
     this.methodRegistry = methodRegistry || {};
     this.pipePath = customPipePath || getPipePath();
+
+    // Resolve auth. Default: required, token loaded/created in the user data dir.
+    // Tests can disable (authRequired:false) or inject a fixed token.
+    if (options.authRequired === false) {
+      this.authRequired = false;
+    }
+    if (this.authRequired) {
+      this.authToken = options.authToken || require('./pipe-auth').ensureToken();
+    }
 
     // Clean up stale pipes (Unix only)
     try {

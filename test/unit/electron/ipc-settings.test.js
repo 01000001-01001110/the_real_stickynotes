@@ -19,6 +19,7 @@ jest.mock('electron', () => ({
   },
   app: {
     setLoginItemSettings: jest.fn(),
+    getLoginItemSettings: jest.fn().mockReturnValue({ openAtLogin: true, enabled: true }),
     getPath: jest.fn().mockReturnValue('/mock/path'),
   },
 }));
@@ -108,7 +109,11 @@ describe('IPC Settings Handlers', () => {
         .mockReturnValueOnce(14)
         .mockReturnValueOnce('Segoe UI');
 
-      const keys = ['editor.spellcheck', 'appearance.defaultFontSize', 'appearance.defaultFontFamily'];
+      const keys = [
+        'editor.spellcheck',
+        'appearance.defaultFontSize',
+        'appearance.defaultFontFamily',
+      ];
       const result = handlers['settings:getMultiple']({}, keys);
 
       expect(settingsDb.getSetting).toHaveBeenCalledTimes(3);
@@ -145,15 +150,15 @@ describe('IPC Settings Handlers', () => {
 
     it('should handle all 9 editor settings used by applyEditorSettings', () => {
       settingsDb.getSetting
-        .mockReturnValueOnce(true)      // editor.spellcheck
-        .mockReturnValueOnce(14)        // appearance.defaultFontSize
-        .mockReturnValueOnce('Arial')   // appearance.defaultFontFamily
-        .mockReturnValueOnce(4)         // editor.tabSize
-        .mockReturnValueOnce(true)      // editor.autoLists
-        .mockReturnValueOnce(false)     // editor.autoLinks
-        .mockReturnValueOnce(true)      // editor.showWordCount
-        .mockReturnValueOnce(true)      // appearance.enableAnimations
-        .mockReturnValueOnce(1000);     // general.autoSaveDelay
+        .mockReturnValueOnce(true) // editor.spellcheck
+        .mockReturnValueOnce(14) // appearance.defaultFontSize
+        .mockReturnValueOnce('Arial') // appearance.defaultFontFamily
+        .mockReturnValueOnce(4) // editor.tabSize
+        .mockReturnValueOnce(true) // editor.autoLists
+        .mockReturnValueOnce(false) // editor.autoLinks
+        .mockReturnValueOnce(true) // editor.showWordCount
+        .mockReturnValueOnce(true) // appearance.enableAnimations
+        .mockReturnValueOnce(1000); // general.autoSaveDelay
 
       const keys = [
         'editor.spellcheck',
@@ -182,7 +187,11 @@ describe('IPC Settings Handlers', () => {
       handlers['settings:set']({}, 'appearance.defaultFontSize', 16);
 
       expect(settingsDb.setSetting).toHaveBeenCalledWith('appearance.defaultFontSize', 16);
-      expect(mockWindowManager.broadcast).toHaveBeenCalledWith('setting:changed', 'appearance.defaultFontSize', 16);
+      expect(mockWindowManager.broadcast).toHaveBeenCalledWith(
+        'setting:changed',
+        'appearance.defaultFontSize',
+        16
+      );
     });
 
     it('should return true on success', () => {
@@ -218,10 +227,15 @@ describe('IPC Settings Handlers', () => {
     it('should call app.setLoginItemSettings when startOnBoot changes', () => {
       handlers['settings:set']({}, 'general.startOnBoot', true);
 
-      expect(app.setLoginItemSettings).toHaveBeenCalledWith({
+      const expectedSettings = {
         openAtLogin: true,
         path: '/mock/path',
-      });
+      };
+      // On Windows, enabled field is also written to fix StartupApproved\Run key
+      if (process.platform === 'win32') {
+        expectedSettings.enabled = true;
+      }
+      expect(app.setLoginItemSettings).toHaveBeenCalledWith(expectedSettings);
     });
   });
 
